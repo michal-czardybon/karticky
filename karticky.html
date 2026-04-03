@@ -332,7 +332,7 @@ function scheduleHint() {
   clearTimeout(hintTimer);
   tapHint.classList.remove('visible');
   if (!flipped && flipCount < 3) {
-    hintTimer = setTimeout(function() { tapHint.classList.add('visible'); }, 10000);
+    hintTimer = setTimeout(function() { tapHint.classList.add('visible'); }, 5000);
   }
 }
 

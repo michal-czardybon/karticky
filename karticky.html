@@ -299,10 +299,10 @@ LANGS.forEach(function(lang) {
 
 function formatWord(html) {
   var idx = html.indexOf('(');
-  if (idx === -1) return html;
+  if (idx <= 0) return '<span>' + html + '</span>';
   var main = html.substring(0, idx).trim();
   var sub  = html.substring(idx);
-  return main + '<span class="word-sub">' + sub + '</span>';
+  return '<span>' + main + '</span><span class="word-sub">' + sub + '</span>';
 }
 
 function shuffle(arr) {

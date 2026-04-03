@@ -130,10 +130,20 @@
       font-weight: 700;
       text-align: center;
       line-height: 1.2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
     }
     .word sup {
       font-size: 0.55em;
       vertical-align: super;
+    }
+    .word-sub {
+      font-size: 0.48em;
+      font-weight: 400;
+      opacity: 0.65;
+      line-height: 1.3;
     }
 
     .card-front { background: #eef4fb; color: #1a1a2e; }
@@ -170,36 +180,40 @@
     }
 
     .controls { display: flex; gap: 14px; align-items: center; }
-    button.btn-next {
+    .controls button {
       border: none;
       cursor: pointer;
       font-family: inherit;
       font-size: 0.88rem;
       font-weight: 600;
       border-radius: 999px;
-      padding: 12px 30px;
+      padding: 12px 22px;
+      transition: transform 0.13s, box-shadow 0.13s, background 0.13s, opacity 0.13s;
+    }
+    .controls button:active { transform: scale(0.95); }
+
+    button.btn-back {
+      background: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.45);
+    }
+    button.btn-back:hover { background: rgba(255,255,255,0.16); }
+
+    button.btn-no {
+      background: rgba(220,80,80,0.25);
+      color: rgba(255,160,160,0.9);
+    }
+    button.btn-no:hover:not(:disabled) { background: rgba(220,80,80,0.38); }
+    button.btn-no:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    button.btn-yes {
       background: var(--accent);
       color: #fff;
       box-shadow: 0 4px 20px rgba(58,123,213,0.4);
-      transition: transform 0.13s, box-shadow 0.13s;
     }
-    button.btn-next:hover { box-shadow: 0 6px 28px rgba(58,123,213,0.6); }
-    button.btn-next:active { transform: scale(0.95); }
-
-    button.btn-prev {
-      border: none;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 0.88rem;
-      font-weight: 600;
-      border-radius: 999px;
-      padding: 12px 30px;
-      background: rgba(255,255,255,0.1);
-      color: rgba(255,255,255,0.45);
-      transition: transform 0.13s, background 0.13s;
-    }
-    button.btn-prev:hover { background: rgba(255,255,255,0.16); }
-    button.btn-prev:active { transform: scale(0.95); }
+    button.btn-yes:hover { box-shadow: 0 6px 28px rgba(58,123,213,0.6); }
 
     .stats { color: var(--muted); font-size: 0.8rem; }
   </style>
@@ -229,8 +243,9 @@
 </div>
 
 <div class="controls">
-  <button class="btn-prev" id="btnPrev">&#x2190; Popr&#x11B;dnja</button>
-  <button class="btn-next" id="btnNext">Nastupna &#x2192;</button>
+  <button class="btn-back" id="btnBack">&#x2190; Vrati</button>
+  <button class="btn-no"   id="btnNo"   disabled>Ne znam &#x2192;</button>
+  <button class="btn-yes"  id="btnYes">Znam &#x2192;</button>
 </div>
 
 <div class="stats" id="stats"></div>
@@ -260,8 +275,11 @@ var card      = document.getElementById('card');
 var wordFront = document.getElementById('wordFront');
 var wordIsv   = document.getElementById('wordIsv');
 var frontLabel= document.getElementById('frontLabel');
-var btnNext   = document.getElementById('btnNext');
-var btnPrev   = document.getElementById('btnPrev');
+var btnBack   = document.getElementById('btnBack');
+var btnNo     = document.getElementById('btnNo');
+var btnYes    = document.getElementById('btnYes');
+var checkedCount = 0;
+var repeatQueue = [];
 var stats     = document.getElementById('stats');
 var progFill  = document.getElementById('progressFill');
 var tapHint   = document.getElementById('tapHint');
@@ -278,6 +296,14 @@ LANGS.forEach(function(lang) {
   btn.addEventListener('click', function() { setLang(lang.code); });
   selector.appendChild(btn);
 });
+
+function formatWord(html) {
+  var idx = html.indexOf('(');
+  if (idx === -1) return html;
+  var main = html.substring(0, idx).trim();
+  var sub  = html.substring(idx);
+  return main + '<span class="word-sub">' + sub + '</span>';
+}
 
 function shuffle(arr) {
   var a = arr.slice();
@@ -315,20 +341,20 @@ function showCard() {
     wordFront.innerHTML = '(no data)';
     wordIsv.innerHTML = '';
     stats.textContent = '';
-    progFill.style.width = '0%';
+    progFill.style.width = Math.min(checkedCount / 50 * 100, 100).toFixed(1) + '%';
     return;
   }
   var item = deck[index];
-  wordFront.innerHTML = item[currentLang];
-  wordIsv.innerHTML   = item.isv;
+  wordFront.innerHTML = formatWord(item[currentLang]);
+  wordIsv.innerHTML   = formatWord(item.isv);
   card.style.transition = 'none';
   card.classList.remove('flipped');
   flipped = false;
+  btnNo.disabled = true;
   void card.offsetWidth;
   card.style.transition = '';
-  var total = deck.length;
   stats.textContent    = '#' + item.num;
-  progFill.style.width = ((index + 1) / total * 100).toFixed(1) + '%';
+  progFill.style.width = Math.min(checkedCount / 50 * 100, 100).toFixed(1) + '%';
   scheduleHint();
 }
 
@@ -337,13 +363,24 @@ function flipCard() {
   tapHint.classList.remove('visible');
   flipped = !flipped;
   card.classList.toggle('flipped', flipped);
-  if (flipped) flipCount++;
+  if (flipped) { flipCount++; btnNo.disabled = false; }
 }
 
 function nextCard() {
   if (deck.length === 0) return;
+  checkedCount++;
   index = (index + 1) % deck.length;
   if (index === 0) deck = shuffle(VOCAB.filter(function(w) { return w[currentLang] && w[currentLang].trim() !== ''; }));
+  // Decrement repeat countdowns and inject any due items right after current position
+  var due = [];
+  repeatQueue = repeatQueue.filter(function(r) {
+    r.remaining--;
+    if (r.remaining <= 0) { due.push(r.item); return false; }
+    return true;
+  });
+  due.forEach(function(item, i) {
+    deck.splice(index + 1 + i, 0, item);
+  });
   showCard();
 }
 
@@ -354,13 +391,18 @@ function prevCard() {
 }
 
 card.addEventListener('click', flipCard);
-btnNext.addEventListener('click', nextCard);
-btnPrev.addEventListener('click', prevCard);
+btnYes.addEventListener('click', nextCard);
+btnNo.addEventListener('click', function() {
+  repeatQueue.push({ item: deck[index], remaining: 5 });
+  nextCard();
+});
+btnBack.addEventListener('click', prevCard);
 
 document.addEventListener('keydown', function(e) {
   if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
-  if (e.key === 'ArrowRight' || e.key === 'n') nextCard();
-  if (e.key === 'ArrowLeft' || e.key === 'p') prevCard();
+  if (e.key === 'ArrowRight' || e.key === 'y') nextCard();
+  if (e.key === 'ArrowLeft'  || e.key === 'p') prevCard();
+  if (e.key === 'n') { if (!btnNo.disabled) { repeatQueue.push({ item: deck[index], remaining: 5 }); nextCard(); } }
 });
 
 setLang('en');

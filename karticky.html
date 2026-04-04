@@ -768,9 +768,29 @@ function flipThen(el, fn) {
 function normalize(s) {
   return s.replace(/<sup>[^<]*<\/sup>/gi, '')  // remove superscripts (incl. content)
            .replace(/<[^>]*>/g, '')              // strip remaining HTML tags
-           .replace(/\s*\([^)]*\)/g, '')         // remove parenthetical blocks entirely
-           .replace(/[\s,.!?;:]/g, '')           // strip remaining punctuation/spaces
-           .toLowerCase();
+           .replace(/[\s,.!?;:()\[\]{}]/g, '')  // strip punctuation/spaces/brackets
+           .toLowerCase()
+           .replace(/ĉ/g, 'č')                  // allow ĉ as substitute for č
+           .replace(/ê/g, 'ě')                  // allow ê as substitute for ě
+           .replace(/ŝ/g, 'š');                 // allow ŝ as substitute for š
+}
+
+// Expand attached parens into two variants: "(po)zvoniti" → ["pozvoniti","zvoniti"]
+function expandOptionalParens(s) {
+  for (var i = 0; i < s.length; i++) {
+    if (s[i] === '(' && (i === 0 || s[i - 1] !== ' ')) {
+      var close = s.indexOf(')', i);
+      if (close < 0) break;
+      var before = s.substring(0, i);
+      var inside = s.substring(i + 1, close);
+      var after  = s.substring(close + 1);
+      var result = [];
+      expandOptionalParens(before + inside + after).forEach(function(v) { result.push(v); });
+      expandOptionalParens(before + after).forEach(function(v) { if (result.indexOf(v) < 0) result.push(v); });
+      return result;
+    }
+  }
+  return [s];
 }
 
 function showVpisyvanje() {
@@ -805,8 +825,14 @@ function checkVpisyvanje() {
     return;
   }
   var item = deck[index];
-  var isCorrect = item.isv.split(/,|\?\s+/).some(function(v) {
-    return normalize(v) === normalize(vpisyvanjeInput.value);
+  var isvClean = item.isv
+    .replace(/<sup>[^<]*<\/sup>/gi, '').replace(/<[^>]*>/g, '')
+    .replace(/\s+\([^)]*\)/g, '');  // strip explanatory parens (space-separated)
+  var userNorm = normalize(vpisyvanjeInput.value);
+  var isCorrect = isvClean.split(/,|\?\s+/).some(function(v) {
+    return expandOptionalParens(v.trim()).some(function(exp) {
+      return normalize(exp) === userNorm;
+    });
   });
   vpisyvanjeAnswered = true;
   vpisyvanjeInput.disabled = true;

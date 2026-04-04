@@ -216,6 +216,120 @@
     button.btn-yes:hover { box-shadow: 0 6px 28px rgba(58,123,213,0.6); }
 
     .stats { color: var(--muted); font-size: 0.8rem; }
+
+    /* Mode dropdown */
+    .mode-dropdown {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 100;
+    }
+    .mode-toggle-btn {
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.8);
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .mode-toggle-btn:hover { background: rgba(255,255,255,0.14); }
+    .mode-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      background: #16213e;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      overflow: hidden;
+      min-width: 120px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    .mode-menu.hidden { display: none; }
+    .mode-menu-item {
+      display: block;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,0.7);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 10px 16px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.12s;
+    }
+    .mode-menu-item:hover { background: rgba(255,255,255,0.08); }
+    .mode-menu-item.active { color: var(--accent); }
+
+    /* Section visibility */
+    .game-section { display: contents; }
+    .game-section.hidden { display: none; }
+
+    /* Knopky section */
+    .knopky-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      width: min(420px, 100%);
+    }
+    .knopky-word {
+      background: #eef4fb;
+      border-radius: 16px;
+      padding: 18px 24px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      color: #1a1a2e;
+    }
+    .knopky-word .label {
+      position: static;
+      display: block;
+      margin-bottom: 8px;
+      color: var(--accent);
+    }
+    .knopky-word .word {
+      font-size: 1.75rem;
+    }
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+    }
+    .option-btn {
+      border: 2px solid transparent;
+      border-radius: 16px;
+      padding: 16px 10px;
+      background: var(--accent);
+      color: #fff;
+      font-family: inherit;
+      font-size: clamp(0.8rem, 2.5vw, 0.95rem);
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      box-shadow: 0 3px 12px rgba(58,123,213,0.35);
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+      line-height: 1.3;
+    }
+    .option-btn:hover:not([disabled]) { box-shadow: 0 4px 18px rgba(58,123,213,0.55); }
+    .option-btn.correct {
+      background: rgba(50,200,100,0.18);
+      border-color: #32c864;
+      color: #6effa0;
+    }
+    .option-btn.wrong {
+      background: rgba(220,60,60,0.18);
+      border-color: #dc3c3c;
+      color: rgba(255,120,120,0.8);
+      text-decoration: line-through;
+    }
   </style>
 </head>
 <body>
@@ -224,28 +338,45 @@
   <h1>Med&#x17E;uslovjanske karti&#x010D;ky</h1>
 </header>
 
+<div class="mode-dropdown" id="modeDropdown">
+  <button class="mode-toggle-btn" id="modeToggle">Karti&#x010D;ky &#x25BE;</button>
+  <div class="mode-menu hidden" id="modeMenu">
+    <button class="mode-menu-item active" data-mode="karticky">Karti&#x010D;ky</button>
+    <button class="mode-menu-item"        data-mode="knopky">Knopky</button>
+  </div>
+</div>
+
 <div class="lang-selector" id="langSelector"></div>
 
 <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
 
-<div class="scene">
-  <div class="card" id="card">
-    <div class="card-face card-front">
-      <span class="label" id="frontLabel"></span>
-      <span class="word" id="wordFront"></span>
-      <span class="tap-hint" id="tapHint">&#x1F447;</span>
+<div class="game-section" id="kartickySect">
+  <div class="scene">
+    <div class="card" id="card">
+      <div class="card-face card-front">
+        <span class="label" id="frontLabel"></span>
+        <span class="word" id="wordFront"></span>
+        <span class="tap-hint" id="tapHint">&#x1F447;</span>
+      </div>
+      <div class="card-face card-back">
+        <span class="label">Med&#x17E;uslovjansky</span>
+        <span class="word" id="wordIsv"></span>
+      </div>
     </div>
-    <div class="card-face card-back">
-      <span class="label">Med&#x17E;uslovjansky</span>
-      <span class="word" id="wordIsv"></span>
-    </div>
+  </div>
+  <div class="controls">
+    <button class="btn-back" id="btnBack">&#x2190; Vrati</button>
+    <button class="btn-no"   id="btnNo"   disabled>Ne znam &#x2192;</button>
+    <button class="btn-yes"  id="btnYes">Znam &#x2192;</button>
   </div>
 </div>
 
-<div class="controls">
-  <button class="btn-back" id="btnBack">&#x2190; Vrati</button>
-  <button class="btn-no"   id="btnNo"   disabled>Ne znam &#x2192;</button>
-  <button class="btn-yes"  id="btnYes">Znam &#x2192;</button>
+<div class="game-section hidden knopky-section" id="knopkySect">
+  <div class="knopky-word" id="knopkyWord">
+    <span class="label" id="knopkyLabel"></span>
+    <div class="word" id="knopkyWordText"></div>
+  </div>
+  <div class="options-grid" id="optionsGrid"></div>
 </div>
 
 <div class="stats" id="stats"></div>
@@ -267,25 +398,39 @@ const LANGS = [
 ];
 
 var currentLang = 'en';
+var currentMode = 'karticky';
 var deck = [];
 var index = 0;
 var flipped = false;
 
-var card      = document.getElementById('card');
-var wordFront = document.getElementById('wordFront');
-var wordIsv   = document.getElementById('wordIsv');
-var frontLabel= document.getElementById('frontLabel');
-var btnBack   = document.getElementById('btnBack');
-var btnNo     = document.getElementById('btnNo');
-var btnYes    = document.getElementById('btnYes');
-var checkedCount = 0;
-var repeatQueue = [];
-var stats     = document.getElementById('stats');
-var progFill  = document.getElementById('progressFill');
-var tapHint   = document.getElementById('tapHint');
-var selector  = document.getElementById('langSelector');
-var hintTimer = null;
-var flipCount = 0;
+var card          = document.getElementById('card');
+var wordFront     = document.getElementById('wordFront');
+var wordIsv       = document.getElementById('wordIsv');
+var frontLabel    = document.getElementById('frontLabel');
+var btnBack       = document.getElementById('btnBack');
+var btnNo         = document.getElementById('btnNo');
+var btnYes        = document.getElementById('btnYes');
+var checkedCount  = 0;
+var repeatQueue   = [];
+var stats         = document.getElementById('stats');
+var progFill      = document.getElementById('progressFill');
+var tapHint       = document.getElementById('tapHint');
+var selector      = document.getElementById('langSelector');
+var hintTimer     = null;
+var flipCount     = 0;
+var kartickySect  = document.getElementById('kartickySect');
+var knopkySect    = document.getElementById('knopkySect');
+var knopkyLabel   = document.getElementById('knopkyLabel');
+var knopkyWordText= document.getElementById('knopkyWordText');
+var optionsGrid   = document.getElementById('optionsGrid');
+var knopkyNextAction = null;
+var knopkyOptions    = null;
+var knopkyAnswered   = false;
+var knopkyAutoTimer  = null;
+var knopkyGeneration = 0;
+
+var modeToggle = document.getElementById('modeToggle');
+var modeMenu   = document.getElementById('modeMenu');
 
 LANGS.forEach(function(lang) {
   var btn = document.createElement('button');
@@ -296,6 +441,35 @@ LANGS.forEach(function(lang) {
   btn.addEventListener('click', function() { setLang(lang.code); });
   selector.appendChild(btn);
 });
+
+modeToggle.addEventListener('click', function(e) {
+  e.stopPropagation();
+  modeMenu.classList.toggle('hidden');
+});
+
+document.addEventListener('click', function() { modeMenu.classList.add('hidden'); });
+
+document.querySelectorAll('.mode-menu-item').forEach(function(btn) {
+  btn.addEventListener('click', function() { switchMode(btn.dataset.mode); });
+});
+
+function switchMode(mode) {
+  currentMode = mode;
+  var labels = { karticky: 'Karti\u010Dky', knopky: 'Knopky' };
+  modeToggle.textContent = labels[mode] + ' \u25BE';
+  document.querySelectorAll('.mode-menu-item').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  if (mode === 'karticky') {
+    kartickySect.classList.remove('hidden');
+    knopkySect.classList.add('hidden');
+    showCard();
+  } else {
+    kartickySect.classList.add('hidden');
+    knopkySect.classList.remove('hidden');
+    showKnopky();
+  }
+}
 
 function formatWord(html) {
   var idx = html.indexOf('(');
@@ -324,14 +498,15 @@ function setLang(code) {
   frontLabel.textContent = lang ? lang.label : code.toUpperCase();
   deck = shuffle(VOCAB.filter(function(w) { return w[code] && w[code].trim() !== ''; }));
   var found = currentItem ? deck.indexOf(currentItem) : -1;
-  index = found >= 0 ? found : 0;
-  showCard();
+  if (found >= 0) { index = found; }
+  else { index = 0; knopkyOptions = null; }
+  showCurrent();
 }
 
 function scheduleHint() {
   clearTimeout(hintTimer);
   tapHint.classList.remove('visible');
-  if (!flipped && flipCount < 3) {
+  if (currentMode === 'karticky' && !flipped && flipCount < 3) {
     hintTimer = setTimeout(function() { tapHint.classList.add('visible'); }, 5000);
   }
 }
@@ -358,6 +533,89 @@ function showCard() {
   scheduleHint();
 }
 
+function showKnopky() {
+  if (deck.length === 0) return;
+  knopkyNextAction = null;
+  knopkyAnswered   = false;
+  clearTimeout(knopkyAutoTimer);
+  knopkyGeneration++;
+  var item = deck[index];
+  var lang = LANGS.find(function(l) { return l.code === currentLang; });
+  knopkyLabel.textContent = lang ? lang.label : currentLang.toUpperCase();
+  knopkyWordText.innerHTML = formatWord(item[currentLang]);
+
+  // Generate options only when word changes (knopkyOptions === null)
+  if (!knopkyOptions) {
+    var correct = item.isv;
+    var pool = shuffle(VOCAB.filter(function(w) { return w.isv && w.isv !== correct; }));
+    var wrongs = pool.slice(0, 3).map(function(w) { return w.isv; });
+    knopkyOptions = shuffle([correct].concat(wrongs));
+  }
+
+  var correct = item.isv;
+  optionsGrid.innerHTML = '';
+  knopkyOptions.forEach(function(opt) {
+    var btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = formatWord(opt);
+    if (opt === correct) btn.dataset.correct = 'true';
+    btn.addEventListener('click', function() { handleOptionClick(btn, opt === correct); });
+    optionsGrid.appendChild(btn);
+  });
+
+  stats.textContent    = '#' + item.num;
+  progFill.style.width = Math.min(checkedCount / 50 * 100, 100).toFixed(1) + '%';
+}
+
+function handleOptionClick(clickedBtn, isCorrect) {
+  if (knopkyAnswered) return;
+  knopkyAnswered = true;
+
+  var myGen = knopkyGeneration;
+
+  var allBtns = optionsGrid.querySelectorAll('.option-btn');
+  allBtns.forEach(function(b) { b.disabled = true; });
+
+  if (isCorrect) {
+    clickedBtn.classList.add('correct');
+    knopkyNextAction = function() { nextCard(); };
+    knopkyAutoTimer = setTimeout(advance, 3000);
+  } else {
+    clickedBtn.classList.add('wrong');
+    allBtns.forEach(function(b) {
+      if (b.dataset.correct === 'true') b.classList.add('correct');
+    });
+    knopkyNextAction = function() {
+      repeatQueue.push({ item: deck[index], remaining: 5 });
+      nextCard();
+    };
+  }
+
+  function advance() {
+    if (knopkyGeneration !== myGen) return;
+    clearTimeout(knopkyAutoTimer);
+    if (knopkyNextAction) { var fn = knopkyNextAction; knopkyNextAction = null; fn(); }
+  }
+
+  setTimeout(function() {
+    allBtns.forEach(function(b) {
+      if (b.dataset.correct === 'true') {
+        b.disabled = false;
+        b.addEventListener('click', advance, { once: true });
+      }
+    });
+    document.addEventListener('click', function handler() {
+      document.removeEventListener('click', handler);
+      advance();
+    });
+  }, 400);
+}
+
+function showCurrent() {
+  if (currentMode === 'karticky') showCard();
+  else showKnopky();
+}
+
 function flipCard() {
   clearTimeout(hintTimer);
   tapHint.classList.remove('visible');
@@ -381,13 +639,15 @@ function nextCard() {
   due.forEach(function(item, i) {
     deck.splice(index + 1 + i, 0, item);
   });
-  showCard();
+  knopkyOptions = null;
+  showCurrent();
 }
 
 function prevCard() {
   if (deck.length === 0) return;
   index = (index - 1 + deck.length) % deck.length;
-  showCard();
+  knopkyOptions = null;
+  showCurrent();
 }
 
 card.addEventListener('click', flipCard);

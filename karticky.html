@@ -365,6 +365,57 @@
       font-weight: 400;
       opacity: 0.8;
     }
+
+    /* Vpisyvanje section */
+    .vpisyvanje-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: min(420px, 100%);
+      perspective: 1000px;
+    }
+    .vpisyvanje-flip {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .vpisyvanje-input {
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 12px;
+      border: 2px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-family: inherit;
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-align: center;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s, color 0.2s;
+      box-sizing: border-box;
+    }
+    .vpisyvanje-input:focus {
+      border-color: var(--accent);
+      background: rgba(255,255,255,0.12);
+    }
+    .vpisyvanje-input.correct {
+      border-color: #32c864;
+      background: rgba(50,200,100,0.12);
+      color: #6effa0;
+    }
+    .vpisyvanje-input.wrong {
+      border-color: #dc3c3c;
+      background: rgba(220,60,60,0.12);
+      color: rgba(255,120,120,0.9);
+    }
+    .vpisyvanje-answer {
+      text-align: center;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #6effa0;
+      min-height: 1.4em;
+    }
   </style>
 </head>
 <body>
@@ -378,6 +429,7 @@
   <div class="mode-menu hidden" id="modeMenu">
     <button class="mode-menu-item active" data-mode="karticky">Karti&#x010D;ky</button>
     <button class="mode-menu-item"        data-mode="knopky">Knopky</button>
+    <button class="mode-menu-item"        data-mode="vpisyvanje">Vpisyvanje</button>
   </div>
 </div>
 
@@ -414,6 +466,22 @@
       <div class="knopky-sub"  id="knopkyWordSub"></div>
     </div>
     <div class="options-grid" id="optionsGrid"></div>
+  </div>
+</div>
+
+<div class="game-section hidden vpisyvanje-section" id="vpisyvanjeSect">
+  <div class="vpisyvanje-flip" id="vpisyvanjeFlip">
+    <div class="knopky-word" id="vpisyvanjeWord">
+      <span class="label" id="vpisyvanjeLabel"></span>
+      <div class="knopky-main" id="vpisyvanjeWordMain"></div>
+      <div class="knopky-sub"  id="vpisyvanjeWordSub"></div>
+    </div>
+    <input type="text" class="vpisyvanje-input" id="vpisyvanjeInput" autocomplete="off" autocorrect="off" spellcheck="false" />
+    <div class="vpisyvanje-answer" id="vpisyvanjeAnswer"></div>
+    <div class="controls">
+      <button class="btn-back" id="vpisyvanjeBtnBack">&#x2190; Vrati</button>
+      <button class="btn-yes"  id="vpisyvanjeBtnCheck">Prověri &#x2192;</button>
+    </div>
   </div>
 </div>
 
@@ -469,7 +537,20 @@ var knopkyAnswered   = false;
 var knopkyAutoTimer  = null;
 var knopkyGeneration = 0;
 
-var knopkyFlip = document.getElementById('knopkyFlip');
+var knopkyFlip       = document.getElementById('knopkyFlip');
+
+var vpisyvanjeSect      = document.getElementById('vpisyvanjeSect');
+var vpisyvanjeFlip      = document.getElementById('vpisyvanjeFlip');
+var vpisyvanjeLabel     = document.getElementById('vpisyvanjeLabel');
+var vpisyvanjeWordMain  = document.getElementById('vpisyvanjeWordMain');
+var vpisyvanjeWordSub   = document.getElementById('vpisyvanjeWordSub');
+var vpisyvanjeInput     = document.getElementById('vpisyvanjeInput');
+var vpisyvanjeAnswer    = document.getElementById('vpisyvanjeAnswer');
+var vpisyvanjeBtnBack   = document.getElementById('vpisyvanjeBtnBack');
+var vpisyvanjeBtnCheck  = document.getElementById('vpisyvanjeBtnCheck');
+
+var vpisyvanjeAnswered    = false;
+var vpisyvanjeNextAction  = null;
 
 var modeToggle = document.getElementById('modeToggle');
 var modeMenu   = document.getElementById('modeMenu');
@@ -497,20 +578,15 @@ document.querySelectorAll('.mode-menu-item').forEach(function(btn) {
 
 function switchMode(mode) {
   currentMode = mode;
-  var labels = { karticky: 'Karti\u010Dky', knopky: 'Knopky' };
+  var labels = { karticky: 'Karti\u010Dky', knopky: 'Knopky', vpisyvanje: 'Vpisyvanje' };
   modeToggle.textContent = labels[mode] + ' \u25BE';
   document.querySelectorAll('.mode-menu-item').forEach(function(b) {
     b.classList.toggle('active', b.dataset.mode === mode);
   });
-  if (mode === 'karticky') {
-    kartickySect.classList.remove('hidden');
-    knopkySect.classList.add('hidden');
-    showCard();
-  } else {
-    kartickySect.classList.add('hidden');
-    knopkySect.classList.remove('hidden');
-    showKnopky();
-  }
+  kartickySect.classList.toggle('hidden',    mode !== 'karticky');
+  knopkySect.classList.toggle('hidden',      mode !== 'knopky');
+  vpisyvanjeSect.classList.toggle('hidden',  mode !== 'vpisyvanje');
+  showCurrent();
 }
 
 function formatWord(html) {
@@ -666,23 +742,85 @@ function handleOptionClick(clickedBtn, isCorrect) {
 
 var FLIP_MS = 260;
 
-function flipKnopkyThen(fn) {
-  knopkyFlip.style.transition = 'transform ' + FLIP_MS + 'ms cubic-bezier(0.4,0.2,0.2,1)';
-  knopkyFlip.style.transform  = 'rotateY(90deg)';
+function flipThen(el, fn) {
+  el.style.transition = 'transform ' + FLIP_MS + 'ms cubic-bezier(0.4,0.2,0.2,1)';
+  el.style.transform  = 'rotateY(90deg)';
   setTimeout(function() {
     fn();
-    knopkyFlip.style.transition = 'none';
-    knopkyFlip.style.transform  = 'rotateY(-90deg)';
-    knopkyFlip.getBoundingClientRect(); // force reflow
-    knopkyFlip.style.transition = 'transform ' + FLIP_MS + 'ms cubic-bezier(0.4,0.2,0.2,1)';
-    knopkyFlip.style.transform  = 'rotateY(0deg)';
-    setTimeout(function() { knopkyFlip.style.transition = knopkyFlip.style.transform = ''; }, FLIP_MS);
+    el.style.transition = 'none';
+    el.style.transform  = 'rotateY(-90deg)';
+    el.getBoundingClientRect(); // force reflow
+    el.style.transition = 'transform ' + FLIP_MS + 'ms cubic-bezier(0.4,0.2,0.2,1)';
+    el.style.transform  = 'rotateY(0deg)';
+    setTimeout(function() { el.style.transition = el.style.transform = ''; }, FLIP_MS);
   }, FLIP_MS);
 }
 
+function normalize(s) {
+  return s.replace(/[()[\]{}\s,.!?;:]/g, '').toLowerCase();
+}
+
+function showVpisyvanje() {
+  if (deck.length === 0) return;
+  var item = deck[index];
+  var lang = LANGS.find(function(l) { return l.code === currentLang; });
+  vpisyvanjeLabel.textContent = lang ? lang.label : currentLang.toUpperCase();
+  var langWord = item[currentLang] || '';
+  var parenIdx = langWord.indexOf('(');
+  if (parenIdx <= 0) {
+    vpisyvanjeWordMain.innerHTML = langWord;
+    vpisyvanjeWordSub.innerHTML  = '';
+  } else {
+    vpisyvanjeWordMain.innerHTML = langWord.substring(0, parenIdx).trim();
+    vpisyvanjeWordSub.innerHTML  = langWord.substring(parenIdx);
+  }
+  if (vpisyvanjeAnswered) return;
+  vpisyvanjeInput.value = '';
+  vpisyvanjeInput.disabled = false;
+  vpisyvanjeInput.className = 'vpisyvanje-input';
+  vpisyvanjeAnswer.textContent = '';
+  vpisyvanjeBtnCheck.textContent = 'Prověri \u2192';
+  vpisyvanjeBtnCheck.style.cssText = '';
+  stats.textContent    = '#' + item.num;
+  progFill.style.width = Math.min(checkedCount / 50 * 100, 100).toFixed(1) + '%';
+  vpisyvanjeInput.focus();
+}
+
+function checkVpisyvanje() {
+  if (vpisyvanjeAnswered) {
+    if (vpisyvanjeNextAction) { var fn = vpisyvanjeNextAction; vpisyvanjeNextAction = null; fn(); }
+    return;
+  }
+  var item = deck[index];
+  var isCorrect = item.isv.split(',').some(function(v) {
+    return normalize(v) === normalize(vpisyvanjeInput.value);
+  });
+  vpisyvanjeAnswered = true;
+  vpisyvanjeInput.disabled = true;
+  if (isCorrect) {
+    vpisyvanjeInput.classList.add('correct');
+    vpisyvanjeBtnCheck.textContent = 'Znam \u2192';
+    vpisyvanjeBtnCheck.style.background = 'rgba(50,200,100,0.3)';
+    vpisyvanjeBtnCheck.style.boxShadow  = 'none';
+    vpisyvanjeNextAction = function() { nextCard(); };
+  } else {
+    vpisyvanjeInput.classList.add('wrong');
+    vpisyvanjeBtnCheck.textContent = 'Ne znam \u2192';
+    vpisyvanjeBtnCheck.style.background = 'rgba(220,80,80,0.25)';
+    vpisyvanjeBtnCheck.style.color      = 'rgba(255,160,160,0.9)';
+    vpisyvanjeBtnCheck.style.boxShadow  = 'none';
+    vpisyvanjeAnswer.textContent = item.isv;
+    vpisyvanjeNextAction = function() {
+      repeatQueue.push({ item: deck[index], remaining: 5 });
+      nextCard();
+    };
+  }
+}
+
 function showCurrent() {
-  if (currentMode === 'karticky') showCard();
-  else showKnopky();
+  if (currentMode === 'karticky')   showCard();
+  else if (currentMode === 'knopky') showKnopky();
+  else                               showVpisyvanje();
 }
 
 function flipCard() {
@@ -710,7 +848,9 @@ function nextCard() {
   });
   knopkyOptions = null;
   knopkyAnswered = false;
-  if (currentMode === 'knopky') { flipKnopkyThen(showKnopky); return; }
+  vpisyvanjeAnswered = false;
+  if (currentMode === 'knopky')      { flipThen(knopkyFlip,       showKnopky);      return; }
+  if (currentMode === 'vpisyvanje')  { flipThen(vpisyvanjeFlip,   showVpisyvanje);  return; }
   showCard();
 }
 
@@ -719,7 +859,9 @@ function prevCard() {
   index = (index - 1 + deck.length) % deck.length;
   knopkyOptions = null;
   knopkyAnswered = false;
-  if (currentMode === 'knopky') { flipKnopkyThen(showKnopky); return; }
+  vpisyvanjeAnswered = false;
+  if (currentMode === 'knopky')      { flipThen(knopkyFlip,       showKnopky);      return; }
+  if (currentMode === 'vpisyvanje')  { flipThen(vpisyvanjeFlip,   showVpisyvanje);  return; }
   showCard();
 }
 
@@ -731,7 +873,15 @@ btnNo.addEventListener('click', function() {
 });
 btnBack.addEventListener('click', prevCard);
 
+vpisyvanjeBtnBack.addEventListener('click', prevCard);
+vpisyvanjeBtnCheck.addEventListener('click', checkVpisyvanje);
+vpisyvanjeInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); checkVpisyvanje(); }
+});
+
 document.addEventListener('keydown', function(e) {
+  if (document.activeElement === vpisyvanjeInput) return;
+  if (currentMode === 'vpisyvanje' && e.key === 'Enter') { e.preventDefault(); checkVpisyvanje(); return; }
   if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
   if (e.key === 'ArrowRight' || e.key === 'y') nextCard();
   if (e.key === 'ArrowLeft'  || e.key === 'p') prevCard();

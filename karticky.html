@@ -285,10 +285,8 @@
       padding: 8px 24px;
       width: 100%;
       height: 128px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
       text-align: center;
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
       color: #1a1a2e;
@@ -296,11 +294,27 @@
     .knopky-word .label {
       position: static;
       display: block;
-      margin-bottom: 8px;
       color: var(--accent);
+      align-self: start;
+      padding-top: 4px;
     }
-    .knopky-word .word {
+    .knopky-main {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 1.75rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .knopky-main sup { font-size: 0.55em; vertical-align: super; }
+    .knopky-sub {
+      align-self: end;
+      padding-bottom: 6px;
+      font-size: 0.75rem;
+      font-weight: 400;
+      opacity: 0.65;
+      line-height: 1.3;
+      min-height: 1.2em;
     }
     .options-grid {
       display: grid;
@@ -311,7 +325,8 @@
     .option-btn {
       border: 2px solid transparent;
       border-radius: 16px;
-      padding: 16px 10px;
+      padding: 6px 10px;
+      height: 72px;
       background: var(--accent);
       color: #fff;
       font-family: inherit;
@@ -388,7 +403,8 @@
 <div class="game-section hidden knopky-section" id="knopkySect">
   <div class="knopky-word" id="knopkyWord">
     <span class="label" id="knopkyLabel"></span>
-    <div class="word" id="knopkyWordText"></div>
+    <div class="knopky-main" id="knopkyWordMain"></div>
+    <div class="knopky-sub"  id="knopkyWordSub"></div>
   </div>
   <div class="options-grid" id="optionsGrid"></div>
 </div>
@@ -436,7 +452,8 @@ var flipCount     = 0;
 var kartickySect  = document.getElementById('kartickySect');
 var knopkySect    = document.getElementById('knopkySect');
 var knopkyLabel   = document.getElementById('knopkyLabel');
-var knopkyWordText= document.getElementById('knopkyWordText');
+var knopkyWordMain = document.getElementById('knopkyWordMain');
+var knopkyWordSub  = document.getElementById('knopkyWordSub');
 var optionsGrid   = document.getElementById('optionsGrid');
 var knopkyNextAction = null;
 var knopkyOptions    = null;
@@ -553,7 +570,15 @@ function showKnopky() {
   var item = deck[index];
   var lang = LANGS.find(function(l) { return l.code === currentLang; });
   knopkyLabel.textContent = lang ? lang.label : currentLang.toUpperCase();
-  knopkyWordText.innerHTML = formatWord(item[currentLang]);
+  var langWord = item[currentLang] || '';
+  var parenIdx = langWord.indexOf('(');
+  if (parenIdx <= 0) {
+    knopkyWordMain.innerHTML = langWord;
+    knopkyWordSub.innerHTML  = '';
+  } else {
+    knopkyWordMain.innerHTML = langWord.substring(0, parenIdx).trim();
+    knopkyWordSub.innerHTML  = langWord.substring(parenIdx);
+  }
 
   // If already answered, just update the label/word and leave highlights intact
   if (knopkyAnswered) return;
@@ -597,7 +622,6 @@ function handleOptionClick(clickedBtn, isCorrect) {
   if (isCorrect) {
     clickedBtn.classList.add('correct');
     knopkyNextAction = function() { nextCard(); };
-    knopkyAutoTimer = setTimeout(advance, 2000);
   } else {
     clickedBtn.classList.add('wrong');
     allBtns.forEach(function(b) {

@@ -276,8 +276,14 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 16px;
       width: min(420px, 100%);
+    }
+    .knopky-section { perspective: 1000px; }
+    .knopky-flip {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
     .knopky-word {
       background: #eef4fb;
@@ -401,12 +407,14 @@
 </div>
 
 <div class="game-section hidden knopky-section" id="knopkySect">
-  <div class="knopky-word" id="knopkyWord">
-    <span class="label" id="knopkyLabel"></span>
-    <div class="knopky-main" id="knopkyWordMain"></div>
-    <div class="knopky-sub"  id="knopkyWordSub"></div>
+  <div class="knopky-flip" id="knopkyFlip">
+    <div class="knopky-word" id="knopkyWord">
+      <span class="label" id="knopkyLabel"></span>
+      <div class="knopky-main" id="knopkyWordMain"></div>
+      <div class="knopky-sub"  id="knopkyWordSub"></div>
+    </div>
+    <div class="options-grid" id="optionsGrid"></div>
   </div>
-  <div class="options-grid" id="optionsGrid"></div>
 </div>
 
 <div class="stats" id="stats"></div>
@@ -460,6 +468,8 @@ var knopkyOptions    = null;
 var knopkyAnswered   = false;
 var knopkyAutoTimer  = null;
 var knopkyGeneration = 0;
+
+var knopkyFlip = document.getElementById('knopkyFlip');
 
 var modeToggle = document.getElementById('modeToggle');
 var modeMenu   = document.getElementById('modeMenu');
@@ -654,6 +664,22 @@ function handleOptionClick(clickedBtn, isCorrect) {
   }, 400);
 }
 
+var FLIP_MS = 260;
+
+function flipKnopkyThen(fn) {
+  knopkyFlip.style.transition = 'transform ' + FLIP_MS + 'ms cubic-bezier(0.4,0.2,0.2,1)';
+  knopkyFlip.style.transform  = 'rotateY(90deg)';
+  setTimeout(function() {
+    fn();
+    knopkyFlip.style.transition = 'none';
+    knopkyFlip.style.transform  = 'rotateY(-90deg)';
+    knopkyFlip.getBoundingClientRect(); // force reflow
+    knopkyFlip.style.transition = 'transform ' + FLIP_MS + 'ms cubic-bezier(0.4,0.2,0.2,1)';
+    knopkyFlip.style.transform  = 'rotateY(0deg)';
+    setTimeout(function() { knopkyFlip.style.transition = knopkyFlip.style.transform = ''; }, FLIP_MS);
+  }, FLIP_MS);
+}
+
 function showCurrent() {
   if (currentMode === 'karticky') showCard();
   else showKnopky();
@@ -684,7 +710,8 @@ function nextCard() {
   });
   knopkyOptions = null;
   knopkyAnswered = false;
-  showCurrent();
+  if (currentMode === 'knopky') { flipKnopkyThen(showKnopky); return; }
+  showCard();
 }
 
 function prevCard() {
@@ -692,7 +719,8 @@ function prevCard() {
   index = (index - 1 + deck.length) % deck.length;
   knopkyOptions = null;
   knopkyAnswered = false;
-  showCurrent();
+  if (currentMode === 'knopky') { flipKnopkyThen(showKnopky); return; }
+  showCard();
 }
 
 card.addEventListener('click', flipCard);

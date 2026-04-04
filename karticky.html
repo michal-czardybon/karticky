@@ -766,9 +766,10 @@ function flipThen(el, fn) {
 }
 
 function normalize(s) {
-  return s.replace(/<sup>[^<]*<\/sup>/gi, '')
-           .replace(/<[^>]*>/g, '')
-           .replace(/[()[\]{}\s,.!?;:]/g, '')
+  return s.replace(/<sup>[^<]*<\/sup>/gi, '')  // remove superscripts (incl. content)
+           .replace(/<[^>]*>/g, '')              // strip remaining HTML tags
+           .replace(/\s*\([^)]*\)/g, '')         // remove parenthetical blocks entirely
+           .replace(/[\s,.!?;:]/g, '')           // strip remaining punctuation/spaces
            .toLowerCase();
 }
 

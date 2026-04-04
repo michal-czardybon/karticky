@@ -410,12 +410,21 @@
       color: rgba(255,120,120,0.9);
     }
     .vpisyvanje-answer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       text-align: center;
       font-size: 0.95rem;
       font-weight: 600;
       color: #6effa0;
       min-height: 1.4em;
     }
+    .vpisyvanje-answer .word-sub {
+      font-size: 0.8em;
+      font-weight: 400;
+      opacity: 0.8;
+    }
+    .vpisyvanje-answer sup { font-size: 0.6em; vertical-align: super; }
   </style>
 </head>
 <body>
@@ -757,7 +766,10 @@ function flipThen(el, fn) {
 }
 
 function normalize(s) {
-  return s.replace(/[()[\]{}\s,.!?;:]/g, '').toLowerCase();
+  return s.replace(/<sup>[^<]*<\/sup>/gi, '')
+           .replace(/<[^>]*>/g, '')
+           .replace(/[()[\]{}\s,.!?;:]/g, '')
+           .toLowerCase();
 }
 
 function showVpisyvanje() {
@@ -792,7 +804,7 @@ function checkVpisyvanje() {
     return;
   }
   var item = deck[index];
-  var isCorrect = item.isv.split(',').some(function(v) {
+  var isCorrect = item.isv.split(/,|\?\s+/).some(function(v) {
     return normalize(v) === normalize(vpisyvanjeInput.value);
   });
   vpisyvanjeAnswered = true;
@@ -809,7 +821,7 @@ function checkVpisyvanje() {
     vpisyvanjeBtnCheck.style.background = 'rgba(220,80,80,0.25)';
     vpisyvanjeBtnCheck.style.color      = 'rgba(255,160,160,0.9)';
     vpisyvanjeBtnCheck.style.boxShadow  = 'none';
-    vpisyvanjeAnswer.textContent = item.isv;
+    vpisyvanjeAnswer.innerHTML = formatWord(item.isv);
     vpisyvanjeNextAction = function() {
       repeatQueue.push({ item: deck[index], remaining: 5 });
       nextCard();

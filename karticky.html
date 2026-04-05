@@ -508,6 +508,7 @@
     .zmija-btn.zmija-other-2 { background: rgba(160,60,210,0.85);  color: #fff; }
     .zmija-btn.zmija-other-3 { background: rgba(0,185,195,0.85);   color: #1a1a2e; }
     .zmija-btn.zmija-other-4 { background: rgba(210,70,140,0.85);  color: #fff; }
+    .zmija-btn.zmija-wrong { background: rgba(220,60,60,0.85) !important; color: #fff !important; }
     .zmija-grid { position: relative; }
     .zmija-arrow {
       position: absolute;
@@ -603,6 +604,7 @@
     <div class="zmija-grid" id="zmijaGrid"></div>
     <div class="controls">
       <button class="btn-back" id="zmijaBtnBack">&#x2190; Vrati</button>
+      <button class="btn-no"   id="zmijaBtnNoAfter" style="display:none">Ne znam &#x2192;</button>
       <button class="btn-yes"  id="zmijaBtnSkip">Ne znam &#x2192;</button>
     </div>
   </div>
@@ -688,8 +690,9 @@ var zmijaLabel     = document.getElementById('zmijaLabel');
 var zmijaWordMain  = document.getElementById('zmijaWordMain');
 var zmijaWordSub   = document.getElementById('zmijaWordSub');
 var zmijaGridEl    = document.getElementById('zmijaGrid');
-var zmijaBtnBack   = document.getElementById('zmijaBtnBack');
-var zmijaBtnSkip   = document.getElementById('zmijaBtnSkip');
+var zmijaBtnBack      = document.getElementById('zmijaBtnBack');
+var zmijaBtnSkip      = document.getElementById('zmijaBtnSkip');
+var zmijaBtnNoAfter   = document.getElementById('zmijaBtnNoAfter');
 
 var zmijaGridData      = [];  // 5×10 letter array
 var zmijaVariants      = [];  // array of paths, one per variant
@@ -1149,6 +1152,7 @@ function showZmija() {
   zmijaActiveVariant = -1;
   zmijaBtnSkip.textContent = 'Ne znam \u2192';
   zmijaBtnSkip.style.cssText = '';
+  zmijaBtnNoAfter.style.display = 'none';
 
   var words = zmijaExtractVariants(item);
   if (!words.length) { nextCard(); return; }
@@ -1252,6 +1256,8 @@ function handleZmijaClick(e) {
         return;
       }
     }
+    btn.classList.add('zmija-wrong');
+    setTimeout(function() { btn.classList.remove('zmija-wrong'); }, 100);
     return;
   }
 
@@ -1265,23 +1271,27 @@ function handleZmijaClick(e) {
     return;
   }
 
-  // Advance if this is the expected next cell
+  // Advance if this is the expected next cell, otherwise flash red
   if (zmijaSelected < path.length) {
     var expected = path[zmijaSelected];
-    if (expected.row === row && expected.col === col) {
-      zmijaSelected++;
-      if (zmijaSelected === path.length) {
-        zmijaAnswered = true;
-        zmijaCompleted = true;
-        checkedCount++;
-        progFill.style.width = Math.min(checkedCount / 50 * 100, 100).toFixed(1) + '%';
-        zmijaBtnSkip.textContent = 'Znam \u2192';
-        zmijaBtnSkip.style.background = 'rgba(50,200,100,0.3)';
-        zmijaBtnSkip.style.boxShadow  = 'none';
-        zmijaNextAction = function() { nextCard(); };
-      }
-      updateZmijaHighlights();
+    if (expected.row !== row || expected.col !== col) {
+      btn.classList.add('zmija-wrong');
+      setTimeout(function() { btn.classList.remove('zmija-wrong'); }, 100);
+      return;
     }
+    zmijaSelected++;
+    if (zmijaSelected === path.length) {
+      zmijaAnswered = true;
+      zmijaCompleted = true;
+      checkedCount++;
+      progFill.style.width = Math.min(checkedCount / 50 * 100, 100).toFixed(1) + '%';
+      zmijaBtnSkip.textContent = 'Znam \u2192';
+      zmijaBtnSkip.style.background = 'rgba(50,200,100,0.3)';
+      zmijaBtnSkip.style.boxShadow  = 'none';
+      zmijaBtnNoAfter.style.display = '';
+      zmijaNextAction = function() { nextCard(); };
+    }
+    updateZmijaHighlights();
   }
 }
 
@@ -1297,6 +1307,11 @@ zmijaBtnSkip.addEventListener('click', function() {
     zmijaBtnSkip.style.boxShadow  = 'none';
     zmijaNextAction = function() { repeatQueue.push({ item: deck[index], remaining: 5 }); nextCard(); };
   }
+});
+
+zmijaBtnNoAfter.addEventListener('click', function() {
+  repeatQueue.push({ item: deck[index], remaining: 5 });
+  nextCard();
 });
 
 // --- end Zmija ---

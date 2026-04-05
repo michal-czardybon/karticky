@@ -409,6 +409,30 @@
       background: rgba(220,60,60,0.12);
       color: rgba(255,120,120,0.9);
     }
+    .vpisyvanje-input-wrap {
+      position: relative;
+      width: 100%;
+    }
+    .vpisyvanje-correct-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      border-radius: 12px;
+      border: 2px solid #32c864;
+      background: rgba(50,200,100,0.12);
+      color: #6effa0;
+      font-family: inherit;
+      font-size: max(1.1rem, 16px);
+      font-weight: 600;
+      box-sizing: border-box;
+      padding: 14px 18px;
+    }
+    .vpisyvanje-correct-overlay.visible { display: flex; }
+    .vpisyvanje-correct-overlay sup { font-size: 0.6em; vertical-align: super; }
+    .vpisyvanje-correct-overlay b { font-weight: 800; }
     .vpisyvanje-answer {
       display: flex;
       flex-direction: column;
@@ -419,25 +443,12 @@
       color: #6effa0;
       min-height: 1.4em;
     }
-    .vpisyvanje-answer.as-input {
-      width: 100%;
-      padding: 14px 18px;
-      border-radius: 12px;
-      border: 2px solid #32c864;
-      background: rgba(50,200,100,0.12);
-      color: #6effa0;
-      font-size: max(1.1rem, 16px);
-      font-weight: 600;
-      box-sizing: border-box;
-      min-height: unset;
-    }
     .vpisyvanje-answer .word-sub {
       font-size: 0.8em;
       font-weight: 400;
       opacity: 0.8;
     }
     .vpisyvanje-answer sup { font-size: 0.6em; vertical-align: super; }
-    .vpisyvanje-answer b { font-weight: 800; }
     .vpisyvanje-answer u { text-decoration-thickness: 2px; text-underline-offset: 3px; }
   </style>
 </head>
@@ -499,7 +510,10 @@
       <div class="knopky-main" id="vpisyvanjeWordMain"></div>
       <div class="knopky-sub"  id="vpisyvanjeWordSub"></div>
     </div>
-    <input type="text" class="vpisyvanje-input" id="vpisyvanjeInput" autocomplete="off" autocorrect="off" spellcheck="false" />
+    <div class="vpisyvanje-input-wrap">
+      <input type="text" class="vpisyvanje-input" id="vpisyvanjeInput" autocomplete="off" autocorrect="off" spellcheck="false" />
+      <div class="vpisyvanje-correct-overlay" id="vpisyvanjeCorrectOverlay"></div>
+    </div>
     <div class="vpisyvanje-answer" id="vpisyvanjeAnswer"></div>
     <div class="controls">
       <button class="btn-back" id="vpisyvanjeBtnBack">&#x2190; Vrati</button>
@@ -573,7 +587,8 @@ var vpisyvanjeLabel     = document.getElementById('vpisyvanjeLabel');
 var vpisyvanjeWordMain  = document.getElementById('vpisyvanjeWordMain');
 var vpisyvanjeWordSub   = document.getElementById('vpisyvanjeWordSub');
 var vpisyvanjeInput     = document.getElementById('vpisyvanjeInput');
-var vpisyvanjeAnswer    = document.getElementById('vpisyvanjeAnswer');
+var vpisyvanjeAnswer         = document.getElementById('vpisyvanjeAnswer');
+var vpisyvanjeCorrectOverlay = document.getElementById('vpisyvanjeCorrectOverlay');
 var vpisyvanjeBtnBack   = document.getElementById('vpisyvanjeBtnBack');
 var vpisyvanjeBtnCheck  = document.getElementById('vpisyvanjeBtnCheck');
 
@@ -856,9 +871,10 @@ function showVpisyvanje() {
     vpisyvanjeInput.value = '';
     vpisyvanjeInput.disabled = false;
     vpisyvanjeInput.className = 'vpisyvanje-input';
-    vpisyvanjeInput.style.display = '';
+    vpisyvanjeInput.style.visibility = '';
+    vpisyvanjeCorrectOverlay.textContent = '';
+    vpisyvanjeCorrectOverlay.classList.remove('visible');
     vpisyvanjeAnswer.textContent = '';
-    vpisyvanjeAnswer.classList.remove('as-input');
     vpisyvanjeBtnCheck.textContent = 'Prověri \u2192';
     vpisyvanjeBtnCheck.style.cssText = '';
     stats.textContent    = '#' + item.num;
@@ -888,15 +904,15 @@ function checkVpisyvanje() {
   vpisyvanjeAnswered = true;
   vpisyvanjeInput.disabled = true;
   if (isCorrect) {
-    vpisyvanjeInput.style.display = 'none';
-    vpisyvanjeAnswer.classList.add('as-input');
+    vpisyvanjeInput.style.visibility = 'hidden';
     var rawVariants = splitTopLevel(item.isv);
-    vpisyvanjeAnswer.innerHTML = '<span>' + rawVariants.map(function(v, i) {
+    vpisyvanjeCorrectOverlay.innerHTML = '<span>' + rawVariants.map(function(v, i) {
       var t = v.trim();
       if (i !== matchedIdx) return t;
       var sp = t.indexOf(' (');
       return sp >= 0 ? '<b>' + t.substring(0, sp) + '</b>' + t.substring(sp) : '<b>' + t + '</b>';
     }).join(', ') + '</span>';
+    vpisyvanjeCorrectOverlay.classList.add('visible');
     vpisyvanjeBtnCheck.textContent = 'Znam \u2192';
     vpisyvanjeBtnCheck.style.background = 'rgba(50,200,100,0.3)';
     vpisyvanjeBtnCheck.style.boxShadow  = 'none';

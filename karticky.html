@@ -750,6 +750,7 @@ function handleOptionClick(clickedBtn, isCorrect) {
     });
     document.addEventListener('click', function handler(e) {
       document.removeEventListener('click', handler);
+      if (currentMode !== 'knopky') return;
       if (e.target.closest('.lang-selector, .mode-dropdown')) return;
       advance();
     });

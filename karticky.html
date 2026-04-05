@@ -221,10 +221,16 @@
     .mode-dropdown {
       position: fixed;
       top: 14px;
+      left: 14px;
+      z-index: 100;
+    }
+    .cat-dropdown {
+      position: fixed;
+      top: 14px;
       right: 14px;
       z-index: 100;
     }
-    .mode-toggle-btn {
+    .mode-toggle-btn, .cat-toggle-btn {
       border: 1px solid rgba(255,255,255,0.2);
       border-radius: 8px;
       padding: 6px 12px;
@@ -237,11 +243,11 @@
       white-space: nowrap;
       transition: background 0.15s;
     }
-    .mode-toggle-btn:hover { background: rgba(255,255,255,0.14); }
+    .mode-toggle-btn:hover, .cat-toggle-btn:hover { background: rgba(255,255,255,0.14); }
     .mode-menu {
       position: absolute;
       top: calc(100% + 6px);
-      right: 0;
+      left: 0;
       background: #16213e;
       border: 1px solid rgba(255,255,255,0.15);
       border-radius: 10px;
@@ -250,6 +256,55 @@
       box-shadow: 0 8px 24px rgba(0,0,0,0.5);
     }
     .mode-menu.hidden { display: none; }
+    .cat-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      background: #16213e;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      overflow: hidden;
+      min-width: 180px;
+      max-height: 60vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    .cat-menu.hidden { display: none; }
+    .cat-menu-ctrl {
+      display: flex;
+      gap: 6px;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      position: sticky;
+      top: 0;
+      background: #16213e;
+    }
+    .cat-menu-ctrl-btn {
+      flex: 1;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      padding: 4px 8px;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.7);
+      font-family: inherit;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .cat-menu-ctrl-btn:hover { background: rgba(255,255,255,0.14); }
+    .cat-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      cursor: pointer;
+      color: rgba(255,255,255,0.75);
+      font-size: 0.78rem;
+      transition: background 0.1s;
+    }
+    .cat-menu-item:hover { background: rgba(255,255,255,0.07); }
+    .cat-menu-item input[type=checkbox] { accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
     .mode-menu-item {
       display: block;
       width: 100%;
@@ -540,6 +595,17 @@
   </div>
 </div>
 
+<div class="cat-dropdown" id="catDropdown">
+  <button class="cat-toggle-btn" id="catToggle">Kategorije &#x25BE;</button>
+  <div class="cat-menu hidden" id="catMenu">
+    <div class="cat-menu-ctrl">
+      <button class="cat-menu-ctrl-btn" id="catSelectAll">&#x2713; Vse</button>
+      <button class="cat-menu-ctrl-btn" id="catDeselectAll">&#x2715; Ni&#x010D;to</button>
+    </div>
+    <div id="catList"></div>
+  </div>
+</div>
+
 <div class="lang-selector" id="langSelector"></div>
 
 <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
@@ -724,7 +790,69 @@ modeToggle.addEventListener('click', function(e) {
   modeMenu.classList.toggle('hidden');
 });
 
-document.addEventListener('click', function() { modeMenu.classList.add('hidden'); });
+// Category dropdown
+var catToggle  = document.getElementById('catToggle');
+var catMenu    = document.getElementById('catMenu');
+var catList    = document.getElementById('catList');
+
+var ALL_CATS = (function() {
+  var seen = {}, list = [];
+  VOCAB.forEach(function(w) { if (w.cat && !seen[w.cat]) { seen[w.cat] = true; list.push(w.cat); } });
+  return list;
+})();
+
+var selectedCats = new Set(ALL_CATS);
+
+function updateCatToggle() {
+  catToggle.textContent = (selectedCats.size === ALL_CATS.length ? 'Kategorije' : 'Kategorije (' + selectedCats.size + ')') + ' \u25BE';
+}
+
+function buildCatList() {
+  catList.innerHTML = '';
+  ALL_CATS.forEach(function(cat) {
+    var label = document.createElement('label');
+    label.className = 'cat-menu-item';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = selectedCats.has(cat);
+    cb.addEventListener('change', function(e) {
+      e.stopPropagation();
+      if (cb.checked) selectedCats.add(cat); else selectedCats.delete(cat);
+      updateCatToggle();
+      rebuildDeck();
+    });
+    var span = document.createElement('span');
+    span.textContent = catLabel(cat);
+    label.appendChild(cb);
+    label.appendChild(span);
+    catList.appendChild(label);
+  });
+}
+
+catToggle.addEventListener('click', function(e) {
+  e.stopPropagation();
+  buildCatList();
+  catMenu.classList.toggle('hidden');
+  modeMenu.classList.add('hidden');
+});
+
+document.getElementById('catSelectAll').addEventListener('click', function(e) {
+  e.stopPropagation();
+  ALL_CATS.forEach(function(c) { selectedCats.add(c); });
+  buildCatList();
+  updateCatToggle();
+  rebuildDeck();
+});
+
+document.getElementById('catDeselectAll').addEventListener('click', function(e) {
+  e.stopPropagation();
+  ALL_CATS.forEach(function(c) { selectedCats.delete(c); });
+  buildCatList();
+  updateCatToggle();
+  rebuildDeck();
+});
+
+document.addEventListener('click', function() { modeMenu.classList.add('hidden'); catMenu.classList.add('hidden'); });
 
 document.querySelectorAll('.mode-menu-item').forEach(function(btn) {
   btn.addEventListener('click', function() { switchMode(btn.dataset.mode); });
@@ -782,19 +910,28 @@ function shuffle(arr) {
   return a;
 }
 
-function setLang(code) {
+function filterVocab() {
+  return VOCAB.filter(function(w) {
+    return w[currentLang] && w[currentLang].trim() !== '' && selectedCats.has(w.cat);
+  });
+}
+
+function rebuildDeck() {
   var currentItem = deck[index] || null;
+  deck = shuffle(filterVocab());
+  var found = currentItem ? deck.indexOf(currentItem) : -1;
+  if (found >= 0) { index = found; }
+  else { index = 0; knopkyOptions = null; zmijaCurrentNum = null; }
+  showCurrent();
+}
+
+function setLang(code) {
   currentLang = code;
   localStorage.setItem('karticky_lang', code);
   selector.querySelectorAll('.lang-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.code === code);
   });
-  var lang = LANGS.find(function(l) { return l.code === code; });
-  deck = shuffle(VOCAB.filter(function(w) { return w[code] && w[code].trim() !== ''; }));
-  var found = currentItem ? deck.indexOf(currentItem) : -1;
-  if (found >= 0) { index = found; }
-  else { index = 0; knopkyOptions = null; }
-  showCurrent();
+  rebuildDeck();
 }
 
 function scheduleHint() {
@@ -911,7 +1048,7 @@ function handleOptionClick(clickedBtn, isCorrect) {
     document.addEventListener('click', function handler(e) {
       document.removeEventListener('click', handler);
       if (currentMode !== 'knopky') return;
-      if (e.target.closest('.lang-selector, .mode-dropdown')) return;
+      if (e.target.closest('.lang-selector, .mode-dropdown, .cat-dropdown')) return;
       advance();
     });
   }, 400);
@@ -1343,7 +1480,7 @@ function nextCard() {
   if (deck.length === 0) return;
   checkedCount++;
   index = (index + 1) % deck.length;
-  if (index === 0) deck = shuffle(VOCAB.filter(function(w) { return w[currentLang] && w[currentLang].trim() !== ''; }));
+  if (index === 0) deck = shuffle(filterVocab());
   // Decrement repeat countdowns and inject any due items right after current position
   var due = [];
   repeatQueue = repeatQueue.filter(function(r) {

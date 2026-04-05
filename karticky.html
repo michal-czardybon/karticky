@@ -425,6 +425,7 @@
       opacity: 0.8;
     }
     .vpisyvanje-answer sup { font-size: 0.6em; vertical-align: super; }
+    .vpisyvanje-answer u { text-decoration-thickness: 2px; text-underline-offset: 3px; }
   </style>
 </head>
 <body>
@@ -844,11 +845,14 @@ function checkVpisyvanje() {
     .replace(/<sup>[^<]*<\/sup>/gi, '').replace(/<[^>]*>/g, '')
     .replace(/\s+\([^)]*\)/g, '');  // strip explanatory parens (space-separated)
   var userNorm = normalize(vpisyvanjeInput.value);
-  var isCorrect = isvClean.split(/,|\?\s+/).some(function(v) {
-    return expandOptionalParens(v.trim()).some(function(exp) {
-      return normalize(exp) === userNorm;
-    });
+  var matchedIdx = -1;
+  isvClean.split(/,|\?\s+/).some(function(v, i) {
+    if (expandOptionalParens(v.trim()).some(function(exp) { return normalize(exp) === userNorm; })) {
+      matchedIdx = i;
+      return true;
+    }
   });
+  var isCorrect = matchedIdx >= 0;
   vpisyvanjeAnswered = true;
   vpisyvanjeInput.disabled = true;
   if (isCorrect) {
@@ -856,6 +860,10 @@ function checkVpisyvanje() {
     vpisyvanjeBtnCheck.textContent = 'Znam \u2192';
     vpisyvanjeBtnCheck.style.background = 'rgba(50,200,100,0.3)';
     vpisyvanjeBtnCheck.style.boxShadow  = 'none';
+    var rawVariants = item.isv.split(/,|\?\s+/);
+    vpisyvanjeAnswer.innerHTML = rawVariants.map(function(v, i) {
+      return i === matchedIdx ? '<u>' + v.trim() + '</u>' : v.trim();
+    }).join(', ');
     vpisyvanjeNextAction = function() { nextCard(); };
   } else {
     vpisyvanjeInput.classList.add('wrong');

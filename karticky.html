@@ -419,12 +419,25 @@
       color: #6effa0;
       min-height: 1.4em;
     }
+    .vpisyvanje-answer.as-input {
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 12px;
+      border: 2px solid #32c864;
+      background: rgba(50,200,100,0.12);
+      color: #6effa0;
+      font-size: max(1.1rem, 16px);
+      font-weight: 600;
+      box-sizing: border-box;
+      min-height: unset;
+    }
     .vpisyvanje-answer .word-sub {
       font-size: 0.8em;
       font-weight: 400;
       opacity: 0.8;
     }
     .vpisyvanje-answer sup { font-size: 0.6em; vertical-align: super; }
+    .vpisyvanje-answer b { font-weight: 800; }
     .vpisyvanje-answer u { text-decoration-thickness: 2px; text-underline-offset: 3px; }
   </style>
 </head>
@@ -788,6 +801,23 @@ function normalize(s) {
            .replace(/ś/g, 'š');                 // allow ś as substitute for š
 }
 
+// Split on ',' and '? ' only at top level (not inside parentheses)
+function splitTopLevel(s) {
+  var parts = [], depth = 0, start = 0;
+  for (var i = 0; i < s.length; i++) {
+    if (s[i] === '(') depth++;
+    else if (s[i] === ')') depth--;
+    else if (depth === 0) {
+      if (s[i] === ',') { parts.push(s.substring(start, i)); start = i + 1; }
+      else if (s[i] === '?' && i + 1 < s.length && s[i + 1] === ' ') {
+        parts.push(s.substring(start, i + 1)); start = i + 2; i++;
+      }
+    }
+  }
+  parts.push(s.substring(start));
+  return parts;
+}
+
 // Expand attached parens into two variants: "(po)zvoniti" → ["pozvoniti","zvoniti"]
 function expandOptionalParens(s) {
   for (var i = 0; i < s.length; i++) {
@@ -826,7 +856,9 @@ function showVpisyvanje() {
     vpisyvanjeInput.value = '';
     vpisyvanjeInput.disabled = false;
     vpisyvanjeInput.className = 'vpisyvanje-input';
+    vpisyvanjeInput.style.display = '';
     vpisyvanjeAnswer.textContent = '';
+    vpisyvanjeAnswer.classList.remove('as-input');
     vpisyvanjeBtnCheck.textContent = 'Prověri \u2192';
     vpisyvanjeBtnCheck.style.cssText = '';
     stats.textContent    = '#' + item.num;
@@ -856,14 +888,18 @@ function checkVpisyvanje() {
   vpisyvanjeAnswered = true;
   vpisyvanjeInput.disabled = true;
   if (isCorrect) {
-    vpisyvanjeInput.classList.add('correct');
+    vpisyvanjeInput.style.display = 'none';
+    vpisyvanjeAnswer.classList.add('as-input');
+    var rawVariants = splitTopLevel(item.isv);
+    vpisyvanjeAnswer.innerHTML = '<span>' + rawVariants.map(function(v, i) {
+      var t = v.trim();
+      if (i !== matchedIdx) return t;
+      var sp = t.indexOf(' (');
+      return sp >= 0 ? '<b>' + t.substring(0, sp) + '</b>' + t.substring(sp) : '<b>' + t + '</b>';
+    }).join(', ') + '</span>';
     vpisyvanjeBtnCheck.textContent = 'Znam \u2192';
     vpisyvanjeBtnCheck.style.background = 'rgba(50,200,100,0.3)';
     vpisyvanjeBtnCheck.style.boxShadow  = 'none';
-    var rawVariants = item.isv.split(/,|\?\s+/);
-    vpisyvanjeAnswer.innerHTML = '<span>' + rawVariants.map(function(v, i) {
-      return i === matchedIdx ? '<u>' + v.trim() + '</u>' : v.trim();
-    }).join(', ') + '</span>';
     vpisyvanjeNextAction = function() { nextCard(); };
   } else {
     vpisyvanjeInput.classList.add('wrong');

@@ -593,6 +593,7 @@ document.querySelectorAll('.mode-menu-item').forEach(function(btn) {
 
 function switchMode(mode) {
   currentMode = mode;
+  localStorage.setItem('karticky_mode', mode);
   var labels = { karticky: 'Karti\u010Dky', knopky: 'Knopky', vpisyvanje: 'Vpisyvanje' };
   modeToggle.textContent = labels[mode] + ' \u25BE';
   document.querySelectorAll('.mode-menu-item').forEach(function(b) {
@@ -624,6 +625,7 @@ function shuffle(arr) {
 function setLang(code) {
   var currentItem = deck[index] || null;
   currentLang = code;
+  localStorage.setItem('karticky_lang', code);
   selector.querySelectorAll('.lang-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.code === code);
   });
@@ -935,7 +937,10 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'n') { if (!btnNo.disabled) { repeatQueue.push({ item: deck[index], remaining: 5 }); nextCard(); } }
 });
 
-setLang('en');
+var savedLang = localStorage.getItem('karticky_lang') || 'en';
+var savedMode = localStorage.getItem('karticky_mode') || 'karticky';
+setLang(savedLang);
+if (savedMode !== 'karticky') switchMode(savedMode);
 </script>
 </body>
 </html>

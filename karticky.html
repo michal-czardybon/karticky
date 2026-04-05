@@ -1520,6 +1520,10 @@ if (savedMode !== 'karticky') switchMode(savedMode);
     deck = deck.filter(function(w) { return w.num !== entry.num; });
     deck.unshift(entry);
     index = 0;
+    knopkyOptions = null;
+    knopkyAnswered = false;
+    vpisyvanjeAnswered = false;
+    zmijaCurrentNum = null;
     showCurrent();
   }
 })();

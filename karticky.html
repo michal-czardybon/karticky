@@ -365,6 +365,21 @@
       font-weight: 400;
       opacity: 0.8;
     }
+    .options-grid.solo-mode .option-btn:not(.correct) {
+      display: none;
+    }
+    .options-grid.solo-mode {
+      grid-template-columns: 1fr;
+    }
+    .options-grid.solo-mode .option-btn.correct {
+      height: 154px;
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+    .options-grid.solo-mode .option-btn.correct .word-sub {
+      font-size: 0.75rem;
+      font-weight: 400;
+    }
 
     /* Vpisyvanje section */
     .vpisyvanje-section {
@@ -497,6 +512,7 @@
 <div class="stats" id="stats"></div>
 
 <script src="vocab.js"></script>
+<script src="categories.js"></script>
 <script>
 
 
@@ -514,6 +530,10 @@ const LANGS = [
 ];
 
 var currentLang = 'en';
+
+function catLabel(cat) {
+  return (CATS[cat] && CATS[cat][currentLang]) || cat || '';
+}
 var currentMode = 'karticky';
 var deck = [];
 var index = 0;
@@ -560,6 +580,7 @@ var vpisyvanjeBtnCheck  = document.getElementById('vpisyvanjeBtnCheck');
 
 var vpisyvanjeAnswered    = false;
 var vpisyvanjeNextAction  = null;
+var vpisyvanjeCurrentNum  = null;
 
 var modeToggle = document.getElementById('modeToggle');
 var modeMenu   = document.getElementById('modeMenu');
@@ -622,7 +643,6 @@ function setLang(code) {
     b.classList.toggle('active', b.dataset.code === code);
   });
   var lang = LANGS.find(function(l) { return l.code === code; });
-  frontLabel.textContent = lang ? lang.label : code.toUpperCase();
   deck = shuffle(VOCAB.filter(function(w) { return w[code] && w[code].trim() !== ''; }));
   var found = currentItem ? deck.indexOf(currentItem) : -1;
   if (found >= 0) { index = found; }
@@ -647,6 +667,7 @@ function showCard() {
     return;
   }
   var item = deck[index];
+  frontLabel.textContent = catLabel(item.cat);
   wordFront.innerHTML = formatWord(item[currentLang]);
   wordIsv.innerHTML   = formatWord(item.isv);
   card.style.transition = 'none';
@@ -663,8 +684,7 @@ function showCard() {
 function showKnopky() {
   if (deck.length === 0) return;
   var item = deck[index];
-  var lang = LANGS.find(function(l) { return l.code === currentLang; });
-  knopkyLabel.textContent = lang ? lang.label : currentLang.toUpperCase();
+  knopkyLabel.textContent = catLabel(item.cat);
   var langWord = item[currentLang] || '';
   var parenIdx = langWord.indexOf('(');
   if (parenIdx <= 0) {
@@ -692,6 +712,7 @@ function showKnopky() {
 
   var correct = item.isv;
   optionsGrid.innerHTML = '';
+  optionsGrid.classList.remove('solo-mode');
   knopkyOptions.forEach(function(opt) {
     var btn = document.createElement('button');
     btn.className = 'option-btn';
@@ -716,6 +737,7 @@ function handleOptionClick(clickedBtn, isCorrect) {
 
   if (isCorrect) {
     clickedBtn.classList.add('correct');
+    optionsGrid.classList.add('solo-mode');
     knopkyNextAction = function() { nextCard(); };
   } else {
     clickedBtn.classList.add('wrong');
@@ -796,8 +818,7 @@ function expandOptionalParens(s) {
 function showVpisyvanje() {
   if (deck.length === 0) return;
   var item = deck[index];
-  var lang = LANGS.find(function(l) { return l.code === currentLang; });
-  vpisyvanjeLabel.textContent = lang ? lang.label : currentLang.toUpperCase();
+  vpisyvanjeLabel.textContent = catLabel(item.cat);
   var langWord = item[currentLang] || '';
   var parenIdx = langWord.indexOf('(');
   if (parenIdx <= 0) {
@@ -808,14 +829,18 @@ function showVpisyvanje() {
     vpisyvanjeWordSub.innerHTML  = langWord.substring(parenIdx);
   }
   if (vpisyvanjeAnswered) return;
-  vpisyvanjeInput.value = '';
-  vpisyvanjeInput.disabled = false;
-  vpisyvanjeInput.className = 'vpisyvanje-input';
-  vpisyvanjeAnswer.textContent = '';
-  vpisyvanjeBtnCheck.textContent = 'Prověri \u2192';
-  vpisyvanjeBtnCheck.style.cssText = '';
-  stats.textContent    = '#' + item.num;
-  progFill.style.width = Math.min(checkedCount / 50 * 100, 100).toFixed(1) + '%';
+  var isNewWord = (item.num !== vpisyvanjeCurrentNum);
+  vpisyvanjeCurrentNum = item.num;
+  if (isNewWord) {
+    vpisyvanjeInput.value = '';
+    vpisyvanjeInput.disabled = false;
+    vpisyvanjeInput.className = 'vpisyvanje-input';
+    vpisyvanjeAnswer.textContent = '';
+    vpisyvanjeBtnCheck.textContent = 'Prověri \u2192';
+    vpisyvanjeBtnCheck.style.cssText = '';
+    stats.textContent    = '#' + item.num;
+    progFill.style.width = Math.min(checkedCount / 50 * 100, 100).toFixed(1) + '%';
+  }
   vpisyvanjeInput.focus();
 }
 

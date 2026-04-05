@@ -778,9 +778,13 @@ function normalize(s) {
            .replace(/<[^>]*>/g, '')              // strip remaining HTML tags
            .replace(/[\s,.!?;:()\[\]{}]/g, '')  // strip punctuation/spaces/brackets
            .toLowerCase()
+           .replace(/cz/g, 'č')                 // allow cz as substitute for č
+           .replace(/sz/g, 'š')                 // allow sz as substitute for š
            .replace(/ĉ/g, 'č')                  // allow ĉ as substitute for č
-           .replace(/ê/g, 'ě')                  // allow ê as substitute for ě
-           .replace(/ŝ/g, 'š');                 // allow ŝ as substitute for š
+           .replace(/ć/g, 'č')                  // allow ć as substitute for č
+           .replace(/[êèé]/g, 'ě')              // allow ê/è/é as substitute for ě
+           .replace(/ŝ/g, 'š')                  // allow ŝ as substitute for š
+           .replace(/ś/g, 'š');                 // allow ś as substitute for š
 }
 
 // Expand attached parens into two variants: "(po)zvoniti" → ["pozvoniti","zvoniti"]

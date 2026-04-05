@@ -659,7 +659,7 @@ function playCorrect() {
   try {
     var ctx = new (window.AudioContext || window.webkitAudioContext)();
     var t = ctx.currentTime;
-    [659, 880].forEach(function(freq, i) {
+    [440, 587].forEach(function(freq, i) {
       var o = ctx.createOscillator(), g = ctx.createGain();
       o.connect(g); g.connect(ctx.destination);
       o.type = 'sine'; o.frequency.value = freq;

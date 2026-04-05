@@ -861,9 +861,9 @@ function checkVpisyvanje() {
     vpisyvanjeBtnCheck.style.background = 'rgba(50,200,100,0.3)';
     vpisyvanjeBtnCheck.style.boxShadow  = 'none';
     var rawVariants = item.isv.split(/,|\?\s+/);
-    vpisyvanjeAnswer.innerHTML = rawVariants.map(function(v, i) {
+    vpisyvanjeAnswer.innerHTML = '<span>' + rawVariants.map(function(v, i) {
       return i === matchedIdx ? '<u>' + v.trim() + '</u>' : v.trim();
-    }).join(', ');
+    }).join(', ') + '</span>';
     vpisyvanjeNextAction = function() { nextCard(); };
   } else {
     vpisyvanjeInput.classList.add('wrong');

@@ -655,6 +655,39 @@
 <script src="categories.js"></script>
 <script>
 
+function playCorrect() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var t = ctx.currentTime;
+    [659, 880].forEach(function(freq, i) {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = freq;
+      var s = t + i * 0.08;
+      g.gain.setValueAtTime(0, s);
+      g.gain.linearRampToValueAtTime(0.22, s + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, s + 0.18);
+      o.start(s); o.stop(s + 0.18);
+    });
+  } catch(e) {}
+}
+
+function playWrong() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var t = ctx.currentTime;
+    [330, 247].forEach(function(freq, i) {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = freq;
+      var s = t + i * 0.1;
+      g.gain.setValueAtTime(0, s);
+      g.gain.linearRampToValueAtTime(0.22, s + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, s + 0.18);
+      o.start(s); o.stop(s + 0.18);
+    });
+  } catch(e) {}
+}
 
 const LANGS = [
   { code: 'pl', flag: '\uD83C\uDDF5\uD83C\uDDF1', label: 'Polski' },
@@ -982,9 +1015,11 @@ function handleOptionClick(clickedBtn, isCorrect) {
   allBtns.forEach(function(b) { b.disabled = true; });
 
   if (isCorrect) {
+    playCorrect();
     clickedBtn.classList.add('correct');
     knopkyNextAction = function() { nextCard(); };
   } else {
+    playWrong();
     clickedBtn.classList.add('wrong');
     allBtns.forEach(function(b) {
       if (b.dataset.correct === 'true') b.classList.add('correct');
@@ -1135,6 +1170,7 @@ function checkVpisyvanje() {
   vpisyvanjeAnswered = true;
   vpisyvanjeInput.disabled = true;
   if (isCorrect) {
+    playCorrect();
     vpisyvanjeInput.style.visibility = 'hidden';
     var rawVariants = splitTopLevel(item.isv);
     vpisyvanjeCorrectOverlay.innerHTML = '<span>' + rawVariants.map(function(v, i) {
@@ -1149,6 +1185,7 @@ function checkVpisyvanje() {
     vpisyvanjeBtnCheck.style.boxShadow  = 'none';
     vpisyvanjeNextAction = function() { nextCard(); };
   } else {
+    playWrong();
     vpisyvanjeInput.classList.add('wrong');
     vpisyvanjeBtnCheck.textContent = 'Ne znam \u2192';
     vpisyvanjeBtnCheck.style.background = 'rgba(220,80,80,0.25)';
@@ -1371,6 +1408,7 @@ function handleZmijaClick(e) {
         return;
       }
     }
+    playWrong();
     btn.classList.add('zmija-wrong');
     setTimeout(function() { btn.classList.remove('zmija-wrong'); }, 100);
     return;
@@ -1390,12 +1428,14 @@ function handleZmijaClick(e) {
   if (zmijaSelected < path.length) {
     var expected = path[zmijaSelected];
     if (expected.row !== row || expected.col !== col) {
+      playWrong();
       btn.classList.add('zmija-wrong');
       setTimeout(function() { btn.classList.remove('zmija-wrong'); }, 100);
       return;
     }
     zmijaSelected++;
     if (zmijaSelected === path.length) {
+      playCorrect();
       zmijaAnswered = true;
       zmijaCompleted = true;
       checkedCount++;

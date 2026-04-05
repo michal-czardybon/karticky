@@ -666,7 +666,9 @@ const LANGS = [
   { code: 'en', flag: '\uD83C\uDDEC\uD83C\uDDE7', label: 'English' },
   { code: 'de', flag: '\uD83C\uDDE9\uD83C\uDDEA', label: 'Deutsch' },
   { code: 'es', flag: '\uD83C\uDDEA\uD83C\uDDF8', label: 'Espa\u00F1ol' },
-  { code: 'it', flag: '\uD83C\uDDEE\uD83C\uDDF9', label: 'Italiano' }
+  { code: 'it', flag: '\uD83C\uDDEE\uD83C\uDDF9', label: 'Italiano' },
+  { code: 'sv', flag: '\uD83C\uDDF8\uD83C\uDDEA', label: 'Svenska' },
+  { code: 'ia', flag: '\uD83C\uDF10', label: 'Interlingua' }
 ];
 
 var currentLang = 'en';
@@ -775,7 +777,7 @@ var ALL_CATS = (function() {
 
 var selectedCat = null; // null = all categories
 
-var ALL_LABEL = { pl: 'Wszystkie', cz: 'Vše', sk: 'Všetky', uk: 'Всі', ru: 'Все', cr: 'Sve', en: 'All', de: 'Alle', es: 'Todas', it: 'Tutte' };
+var ALL_LABEL = { pl: 'Wszystkie', cz: 'Vše', sk: 'Všetky', uk: 'Всі', ru: 'Все', cr: 'Sve', en: 'All', de: 'Alle', sv: 'Alla', es: 'Todas', it: 'Tutte', ia: 'Tote' };
 
 function updateCatToggle() {
   var label = selectedCat ? catLabel(selectedCat) : (ALL_LABEL[currentLang] || 'All');

@@ -510,6 +510,7 @@
     .zmija-btn.zmija-other-4 { background: rgba(210,70,140,0.85);  color: #fff; }
     .zmija-btn.zmija-wrong { background: rgba(220,60,60,0.85) !important; color: #fff !important; }
     .zmija-grid { position: relative; }
+    .zmija-grid.zmija-unselected .zmija-btn:not([data-row="0"]):not([data-col="0"]) { opacity: 0.3; }
     .zmija-arrow {
       position: absolute;
       transform: translate(-50%, -50%);
@@ -1070,46 +1071,51 @@ function showCurrent() {
 
 // --- Zmija mode ---
 
-function dfsSnake(path, occupied, len) {
+var MOVES_LEFT = [{dr: -1, dc: 0}, {dr: 1, dc: 0}, {dr: 0, dc: 1}];  // up, down, right
+var MOVES_TOP  = [{dr: 1, dc: 0}, {dr: 0, dc: -1}, {dr: 0, dc: 1}];  // down, left, right
+
+function dfsSnake(path, occupied, len, moveDefs) {
   if (path.length === len) return true;
   var cur = path[path.length - 1];
-  var moves = shuffle([
-    {row: cur.row - 1, col: cur.col    },   // up
-    {row: cur.row + 1, col: cur.col    },   // down
-    {row: cur.row,     col: cur.col + 1}    // right (never left)
-  ]);
-  for (var i = 0; i < moves.length; i++) {
-    var nr = moves[i].row, nc = moves[i].col;
+  var candidates = shuffle(moveDefs.map(function(m) {
+    return {row: cur.row + m.dr, col: cur.col + m.dc};
+  }));
+  for (var i = 0; i < candidates.length; i++) {
+    var nr = candidates[i].row, nc = candidates[i].col;
     if (nr < 0 || nr >= 5 || nc < 0 || nc >= 10 || occupied[nr][nc]) continue;
     occupied[nr][nc] = true;
     path.push({row: nr, col: nc});
-    if (dfsSnake(path, occupied, len)) return true;
+    if (dfsSnake(path, occupied, len, moveDefs)) return true;
     path.pop();
     occupied[nr][nc] = false;
   }
   return false;
 }
 
-// Place multiple variant snakes, each starting in col 0, sharing one occupied grid
+// Place variant snakes starting from left column (→) or top row (↓), shared occupied grid
 function placeAllSnakes(words) {
   var occupied = [];
   for (var r = 0; r < 5; r++) { occupied[r] = []; for (var c = 0; c < 10; c++) occupied[r][c] = false; }
   var result = [];
-  var startRows = shuffle([0, 1, 2, 3, 4]);
-  var usedRows = {};
+  var starts = [];
+  for (var r = 0; r < 5; r++) starts.push({row: r, col: 0, entryType: 'left', moves: MOVES_LEFT});
+  for (var c = 1; c < 10; c++) starts.push({row: 0, col: c, entryType: 'top',  moves: MOVES_TOP});
+  starts = shuffle(starts);
+  var usedStarts = {};
   for (var w = 0; w < words.length; w++) {
     var word = words[w];
-    for (var ri = 0; ri < startRows.length; ri++) {
-      var sr = startRows[ri];
-      if (usedRows[sr] || occupied[sr][0]) continue;
-      occupied[sr][0] = true;
-      var path = [{row: sr, col: 0}];
-      if (dfsSnake(path, occupied, word.length)) {
-        result.push({path: path, word: word});
-        usedRows[sr] = true;
+    for (var si = 0; si < starts.length; si++) {
+      var s = starts[si];
+      var key = s.row + ',' + s.col;
+      if (usedStarts[key] || occupied[s.row][s.col]) continue;
+      occupied[s.row][s.col] = true;
+      var path = [{row: s.row, col: s.col}];
+      if (dfsSnake(path, occupied, word.length, s.moves)) {
+        result.push({path: path, word: word, entryType: s.entryType});
+        usedStarts[key] = true;
         break;
       }
-      occupied[sr][0] = false;
+      occupied[s.row][s.col] = false;
     }
   }
   return result;
@@ -1162,7 +1168,7 @@ function showZmija() {
 
   var placed = placeAllSnakes(words);
   if (!placed.length) { nextCard(); return; }
-  zmijaVariants = placed.map(function(p) { return p.path; });
+  zmijaVariants = placed;
   for (var vi = 0; vi < placed.length; vi++)
     for (var i = 0; i < placed[vi].path.length; i++)
       zmijaGridData[placed[vi].path[i].row][placed[vi].path[i].col] = placed[vi].word[i];
@@ -1190,6 +1196,7 @@ function renderZmijaGrid() {
       zmijaGridEl.appendChild(btn);
     }
   }
+  zmijaGridEl.classList.add('zmija-unselected');
 }
 
 function getZmijaBtn(row, col) {
@@ -1199,45 +1206,53 @@ function getZmijaBtn(row, col) {
 function updateZmijaHighlights() {
   zmijaGridEl.querySelectorAll('.zmija-btn').forEach(function(b) { b.className = 'zmija-btn'; });
   zmijaGridEl.querySelectorAll('.zmija-arrow').forEach(function(el) { el.remove(); });
+  zmijaGridEl.classList.toggle('zmija-unselected', !zmijaAnswered && zmijaActiveVariant < 0);
   if (zmijaAnswered) {
     var otherIdx = 0;
-    zmijaVariants.forEach(function(path, vi) {
+    zmijaVariants.forEach(function(variant, vi) {
       var cls = (zmijaCompleted && vi === zmijaActiveVariant)
         ? 'zmija-correct'
         : 'zmija-other-' + (otherIdx++);
-      path.forEach(function(p) { getZmijaBtn(p.row, p.col).classList.add(cls); });
+      variant.path.forEach(function(p) { getZmijaBtn(p.row, p.col).classList.add(cls); });
     });
     addZmijaArrows();
     return;
   }
   if (zmijaActiveVariant >= 0) {
-    var path = zmijaVariants[zmijaActiveVariant];
+    var path = zmijaVariants[zmijaActiveVariant].path;
     for (var i = 0; i < zmijaSelected; i++)
       getZmijaBtn(path[i].row, path[i].col).classList.add('zmija-selected');
+    if (zmijaSelected > 1)
+      addPathArrows(path, 0, zmijaSelected - 1);
+  }
+}
+
+function addPathArrows(path, fromIdx, toIdx) {
+  var gridRect = zmijaGridEl.getBoundingClientRect();
+  for (var i = fromIdx; i < toIdx; i++) {
+    var a = getZmijaBtn(path[i].row,   path[i].col);
+    var b = getZmijaBtn(path[i+1].row, path[i+1].col);
+    var ra = a.getBoundingClientRect();
+    var rb = b.getBoundingClientRect();
+    var mx = ((ra.left+ra.right)/2 + (rb.left+rb.right)/2) / 2 - gridRect.left;
+    var my = ((ra.top+ra.bottom)/2 + (rb.top+rb.bottom)/2) / 2 - gridRect.top;
+    var p = path[i], n = path[i+1];
+    var ch = n.col > p.col ? '\u2192' : (n.col < p.col ? '\u2190' : (n.row < p.row ? '\u2191' : '\u2193'));
+    var el = document.createElement('span');
+    el.className = 'zmija-arrow';
+    el.textContent = ch;
+    el.style.left = mx + 'px';
+    el.style.top  = my + 'px';
+    zmijaGridEl.appendChild(el);
   }
 }
 
 function addZmijaArrows() {
-  var gridRect = zmijaGridEl.getBoundingClientRect();
-  zmijaVariants.forEach(function(path) {
-    for (var i = 0; i < path.length - 1; i++) {
-      var a = getZmijaBtn(path[i].row,     path[i].col);
-      var b = getZmijaBtn(path[i+1].row,   path[i+1].col);
-      var ra = a.getBoundingClientRect();
-      var rb = b.getBoundingClientRect();
-      var mx = ((ra.left + ra.right)  / 2 + (rb.left + rb.right)  / 2) / 2 - gridRect.left;
-      var my = ((ra.top  + ra.bottom) / 2 + (rb.top  + rb.bottom) / 2) / 2 - gridRect.top;
-      var p = path[i], n = path[i+1];
-      var ch = n.col > p.col ? '\u2192' : (n.row < p.row ? '\u2191' : '\u2193');
-      var el = document.createElement('span');
-      el.className = 'zmija-arrow';
-      el.textContent = ch;
-      el.style.left = mx + 'px';
-      el.style.top  = my + 'px';
-      zmijaGridEl.appendChild(el);
-    }
+  zmijaVariants.forEach(function(variant) {
+    addPathArrows(variant.path, 0, variant.path.length - 1);
   });
 }
+
 
 function handleZmijaClick(e) {
   if (zmijaAnswered) return;
@@ -1248,7 +1263,7 @@ function handleZmijaClick(e) {
   // No variant chosen yet — check if this cell starts any variant
   if (zmijaActiveVariant < 0) {
     for (var vi = 0; vi < zmijaVariants.length; vi++) {
-      var s = zmijaVariants[vi][0];
+      var s = zmijaVariants[vi].path[0];
       if (s.row === row && s.col === col) {
         zmijaActiveVariant = vi;
         zmijaSelected = 1;
@@ -1261,7 +1276,7 @@ function handleZmijaClick(e) {
     return;
   }
 
-  var path = zmijaVariants[zmijaActiveVariant];
+  var path = zmijaVariants[zmijaActiveVariant].path;
 
   // Unclick last selected cell (or first, resetting variant choice)
   if (zmijaSelected > 0 && path[zmijaSelected - 1].row === row && path[zmijaSelected - 1].col === col) {

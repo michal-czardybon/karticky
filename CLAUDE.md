@@ -27,7 +27,7 @@ Writes to `vocab.js`. Run from any directory — paths are hardcoded in the scri
 
 ### Output fields (in order)
 
-`num`, `cat`, `pl`, `cz`, `sk`, `uk`, `ru`, `cr`, `isv`, `en`, `de`, `es`, `it`
+`num`, `cat`, `pl`, `cz`, `sk`, `uk`, `ru`, `cr`, `isv`, `en`, `de`, `sv`, `es`, `it`, `ia`
 
 A row is only included if it has a valid ISV column **and** a non-empty English translation.
 
@@ -44,6 +44,8 @@ The document contains misspelled column headers that must be mapped:
 | `medžuslvjansky` | `isv` |
 | `rosyjsky` | `ru` |
 | `italijanksy` | `it` |
+
+Note: `interlingua` maps to `ia` (the column header in the document is the full language name, not an adjective form).
 
 These are already handled in `extract_vocab.py`. If a future update adds a new language column and entries go missing, check whether the header is a new typo variant.
 
@@ -85,7 +87,7 @@ These rules apply when checking a typed answer against `item.isv`:
 
 ## categories.js
 
-`const CATS` — maps 47 ISV category names (as they appear in `cat` fields of `vocab.js`) to translations in 10 languages: `pl`, `cz`, `sk`, `uk`, `ru`, `cr`, `en`, `de`, `es`, `it`.
+`const CATS` — maps 47 ISV category names (as they appear in `cat` fields of `vocab.js`) to translations in 12 languages: `pl`, `cz`, `sk`, `uk`, `ru`, `cr`, `en`, `de`, `sv`, `es`, `it`, `ia`.
 
 When updating vocabulary that changes category names, update `CATS` accordingly. The `catLabel(cat)` function in `karticky.html` falls back to the raw ISV name if no translation is found.
 

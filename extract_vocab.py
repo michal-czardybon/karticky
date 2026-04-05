@@ -23,6 +23,8 @@ HEADER_MAP = {
     'špansky':          'es',
     'italijansky':      'it',
     'italijanksy':      'it',
+    'švedsky':          'sv',
+    'interlingua':      'ia',
 }
 
 def para_style(p):
@@ -114,7 +116,7 @@ rows_out = deduped
 
 print(f'Extracted {len(rows_out)} entries', file=sys.stderr)
 
-FIELDS = ['num','cat','pl','cz','sk','uk','ru','cr','isv','en','de','es','it']
+FIELDS = ['num','cat','pl','cz','sk','uk','ru','cr','isv','en','de','sv','es','it','ia']
 
 lines = ['const VOCAB = [']
 for i, entry in enumerate(rows_out):

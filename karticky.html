@@ -264,39 +264,14 @@
       border: 1px solid rgba(255,255,255,0.15);
       border-radius: 10px;
       overflow: hidden;
-      min-width: 180px;
+      min-width: 280px;
       max-height: 60vh;
       overflow-y: auto;
       box-shadow: 0 8px 24px rgba(0,0,0,0.5);
     }
     .cat-menu.hidden { display: none; }
-    .cat-menu-ctrl {
-      display: flex;
-      gap: 6px;
-      padding: 8px 10px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      position: sticky;
-      top: 0;
-      background: #16213e;
-    }
-    .cat-menu-ctrl-btn {
-      flex: 1;
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 6px;
-      padding: 4px 8px;
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.7);
-      font-family: inherit;
-      font-size: 0.7rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.12s;
-    }
-    .cat-menu-ctrl-btn:hover { background: rgba(255,255,255,0.14); }
     .cat-menu-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      display: block;
       padding: 7px 12px;
       cursor: pointer;
       color: rgba(255,255,255,0.75);
@@ -304,7 +279,8 @@
       transition: background 0.1s;
     }
     .cat-menu-item:hover { background: rgba(255,255,255,0.07); }
-    .cat-menu-item input[type=checkbox] { accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+    .cat-menu-item.active { color: var(--accent); font-weight: 600; }
+    .cat-menu-separator { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 2px 0; }
     .mode-menu-item {
       display: block;
       width: 100%;
@@ -596,12 +572,8 @@
 </div>
 
 <div class="cat-dropdown" id="catDropdown">
-  <button class="cat-toggle-btn" id="catToggle">Kategorije &#x25BE;</button>
+  <button class="cat-toggle-btn" id="catToggle">&#x25BE;</button>
   <div class="cat-menu hidden" id="catMenu">
-    <div class="cat-menu-ctrl">
-      <button class="cat-menu-ctrl-btn" id="catSelectAll">&#x2713; Vse</button>
-      <button class="cat-menu-ctrl-btn" id="catDeselectAll">&#x2715; Ni&#x010D;to</button>
-    </div>
     <div id="catList"></div>
   </div>
 </div>
@@ -801,32 +773,35 @@ var ALL_CATS = (function() {
   return list;
 })();
 
-var selectedCats = new Set(ALL_CATS);
+var selectedCat = null; // null = all categories
+
+var ALL_LABEL = { pl: 'Wszystkie', cz: 'Vše', sk: 'Všetky', uk: 'Всі', ru: 'Все', cr: 'Sve', en: 'All', de: 'Alle', es: 'Todas', it: 'Tutte' };
 
 function updateCatToggle() {
-  catToggle.textContent = (selectedCats.size === ALL_CATS.length ? 'Kategorije' : 'Kategorije (' + selectedCats.size + ')') + ' \u25BE';
+  var label = selectedCat ? catLabel(selectedCat) : (ALL_LABEL[currentLang] || 'All');
+  catToggle.textContent = label + ' \u25BE';
 }
 
 function buildCatList() {
   catList.innerHTML = '';
-  ALL_CATS.forEach(function(cat) {
-    var label = document.createElement('label');
-    label.className = 'cat-menu-item';
-    var cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = selectedCats.has(cat);
-    cb.addEventListener('change', function(e) {
+  function makeItem(label, cat) {
+    var div = document.createElement('div');
+    div.className = 'cat-menu-item' + (selectedCat === cat ? ' active' : '');
+    div.textContent = label;
+    div.addEventListener('click', function(e) {
       e.stopPropagation();
-      if (cb.checked) selectedCats.add(cat); else selectedCats.delete(cat);
+      selectedCat = cat;
       updateCatToggle();
+      catMenu.classList.add('hidden');
       rebuildDeck();
     });
-    var span = document.createElement('span');
-    span.textContent = catLabel(cat);
-    label.appendChild(cb);
-    label.appendChild(span);
-    catList.appendChild(label);
-  });
+    catList.appendChild(div);
+  }
+  makeItem(ALL_LABEL[currentLang] || 'All', null);
+  var sep = document.createElement('hr');
+  sep.className = 'cat-menu-separator';
+  catList.appendChild(sep);
+  ALL_CATS.forEach(function(cat) { makeItem(catLabel(cat), cat); });
 }
 
 catToggle.addEventListener('click', function(e) {
@@ -836,21 +811,6 @@ catToggle.addEventListener('click', function(e) {
   modeMenu.classList.add('hidden');
 });
 
-document.getElementById('catSelectAll').addEventListener('click', function(e) {
-  e.stopPropagation();
-  ALL_CATS.forEach(function(c) { selectedCats.add(c); });
-  buildCatList();
-  updateCatToggle();
-  rebuildDeck();
-});
-
-document.getElementById('catDeselectAll').addEventListener('click', function(e) {
-  e.stopPropagation();
-  ALL_CATS.forEach(function(c) { selectedCats.delete(c); });
-  buildCatList();
-  updateCatToggle();
-  rebuildDeck();
-});
 
 document.addEventListener('click', function() { modeMenu.classList.add('hidden'); catMenu.classList.add('hidden'); });
 
@@ -912,7 +872,7 @@ function shuffle(arr) {
 
 function filterVocab() {
   return VOCAB.filter(function(w) {
-    return w[currentLang] && w[currentLang].trim() !== '' && selectedCats.has(w.cat);
+    return w[currentLang] && w[currentLang].trim() !== '' && (!selectedCat || w.cat === selectedCat);
   });
 }
 
@@ -931,6 +891,7 @@ function setLang(code) {
   selector.querySelectorAll('.lang-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.code === code);
   });
+  updateCatToggle();
   rebuildDeck();
 }
 

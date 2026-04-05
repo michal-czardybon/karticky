@@ -450,6 +450,75 @@
     }
     .vpisyvanje-answer sup { font-size: 0.6em; vertical-align: super; }
     .vpisyvanje-answer u { text-decoration-thickness: 2px; text-underline-offset: 3px; }
+
+    /* Zmija section */
+    .zmija-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: min(420px, 100%);
+    }
+    .zmija-section { perspective: 1000px; }
+    .zmija-flip {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .zmija-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 4px;
+      width: 100%;
+    }
+    .zmija-btn {
+      aspect-ratio: 1;
+      border: none;
+      border-radius: 6px;
+      background: rgba(58,123,213,0.22);
+      color: rgba(255,255,255,0.75);
+      font-family: inherit;
+      font-size: clamp(0.65rem, 2.2vw, 0.85rem);
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .zmija-btn.zmija-start {
+      background: rgba(255,200,50,0.75);
+      color: #1a1a2e;
+      box-shadow: 0 0 0 2px rgba(255,200,50,1);
+    }
+    .zmija-btn.zmija-selected {
+      background: var(--accent);
+      color: #fff;
+    }
+    .zmija-btn.zmija-correct {
+      background: rgba(50,200,100,0.85);
+      color: #1a1a2e;
+    }
+    .zmija-btn.zmija-other-0 { background: rgba(58,123,213,0.85);  color: #fff; }
+    .zmija-btn.zmija-other-1 { background: rgba(220,130,0,0.85);   color: #1a1a2e; }
+    .zmija-btn.zmija-other-2 { background: rgba(160,60,210,0.85);  color: #fff; }
+    .zmija-btn.zmija-other-3 { background: rgba(0,185,195,0.85);   color: #1a1a2e; }
+    .zmija-btn.zmija-other-4 { background: rgba(210,70,140,0.85);  color: #fff; }
+    .zmija-grid { position: relative; }
+    .zmija-arrow {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 0 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.6);
+      pointer-events: none;
+      z-index: 2;
+      line-height: 1;
+    }
   </style>
 </head>
 <body>
@@ -464,6 +533,7 @@
     <button class="mode-menu-item active" data-mode="karticky">Karti&#x010D;ky</button>
     <button class="mode-menu-item"        data-mode="knopky">Knopky</button>
     <button class="mode-menu-item"        data-mode="vpisyvanje">Vpisyvanje</button>
+    <button class="mode-menu-item"        data-mode="zmija">Zmija</button>
   </div>
 </div>
 
@@ -518,6 +588,21 @@
     <div class="controls">
       <button class="btn-back" id="vpisyvanjeBtnBack">&#x2190; Vrati</button>
       <button class="btn-yes"  id="vpisyvanjeBtnCheck">Prověri &#x2192;</button>
+    </div>
+  </div>
+</div>
+
+<div class="game-section hidden zmija-section" id="zmijaSect">
+  <div class="zmija-flip" id="zmijaFlip">
+    <div class="knopky-word" id="zmijaWord">
+      <span class="label" id="zmijaLabel"></span>
+      <div class="knopky-main" id="zmijaWordMain"></div>
+      <div class="knopky-sub"  id="zmijaWordSub"></div>
+    </div>
+    <div class="zmija-grid" id="zmijaGrid"></div>
+    <div class="controls">
+      <button class="btn-back" id="zmijaBtnBack">&#x2190; Vrati</button>
+      <button class="btn-yes"  id="zmijaBtnSkip">Ne znam &#x2192;</button>
     </div>
   </div>
 </div>
@@ -596,6 +681,26 @@ var vpisyvanjeAnswered    = false;
 var vpisyvanjeNextAction  = null;
 var vpisyvanjeCurrentNum  = null;
 
+var zmijaSect      = document.getElementById('zmijaSect');
+var zmijaFlip      = document.getElementById('zmijaFlip');
+var zmijaLabel     = document.getElementById('zmijaLabel');
+var zmijaWordMain  = document.getElementById('zmijaWordMain');
+var zmijaWordSub   = document.getElementById('zmijaWordSub');
+var zmijaGridEl    = document.getElementById('zmijaGrid');
+var zmijaBtnBack   = document.getElementById('zmijaBtnBack');
+var zmijaBtnSkip   = document.getElementById('zmijaBtnSkip');
+
+var zmijaGridData      = [];  // 5×10 letter array
+var zmijaVariants      = [];  // array of paths, one per variant
+var zmijaActiveVariant = -1;  // index of variant being followed (-1 = not yet chosen)
+var zmijaSelected      = 0;   // how many cells clicked in active variant
+var zmijaAnswered      = false;
+var zmijaCompleted     = false;  // true only when user finished a variant correctly
+var zmijaNextAction    = null;
+var zmijaCurrentNum    = null;
+
+var ISV_ALPHA = ['a','b','c','\u010d','d','e','\u011b','f','g','h','i','j','k','l','m','n','o','p','r','s','\u0161','t','u','v','z','\u017e'];
+
 var modeToggle = document.getElementById('modeToggle');
 var modeMenu   = document.getElementById('modeMenu');
 
@@ -623,22 +728,43 @@ document.querySelectorAll('.mode-menu-item').forEach(function(btn) {
 function switchMode(mode) {
   currentMode = mode;
   localStorage.setItem('karticky_mode', mode);
-  var labels = { karticky: 'Karti\u010Dky', knopky: 'Knopky', vpisyvanje: 'Vpisyvanje' };
-  modeToggle.textContent = labels[mode] + ' \u25BE';
+  var labels = { karticky: 'Karti\u010Dky', knopky: 'Knopky', vpisyvanje: 'Vpisyvanje', zmija: 'Zmija' };
+  modeToggle.textContent = (labels[mode] || mode) + ' \u25BE';
   document.querySelectorAll('.mode-menu-item').forEach(function(b) {
     b.classList.toggle('active', b.dataset.mode === mode);
   });
   kartickySect.classList.toggle('hidden',    mode !== 'karticky');
   knopkySect.classList.toggle('hidden',      mode !== 'knopky');
   vpisyvanjeSect.classList.toggle('hidden',  mode !== 'vpisyvanje');
+  zmijaSect.classList.toggle('hidden',       mode !== 'zmija');
   showCurrent();
+}
+
+var ABBR = [
+  [/\(impf\.\)/g,  '(imperfective)'],
+  [/\(pf\.\)/g,    '(perfective)'],
+  [/\(indet\.\)/g, '(without direction)'],
+  [/\(fem\.\)/g,   '(feminine)'],
+  [/\(neut\.\)/g,  '(neuter)'],
+  [/\(pers\.\)/g,  '(person)'],
+  [/\(veh\.\)/g,   '(vehicle)'],
+  [/\(n\.\)/g,     '(noun)'],
+  [/\(v\.\)/g,     '(verb)'],
+  [/\(sg\.\)/g,    '(singular)'],
+  [/\(pl\.\)/g,    '(plural)'],
+  [/\(f\.\)/g,     '(feminine)'],
+  [/\(m\.\)/g,     '(masculine)'],
+];
+function expandAbbreviations(s) {
+  ABBR.forEach(function(pair) { s = s.replace(pair[0], pair[1]); });
+  return s;
 }
 
 function formatWord(html) {
   var idx = html.indexOf('(');
   if (idx <= 0) return '<span>' + html + '</span>';
   var main = html.substring(0, idx).trim();
-  var sub  = html.substring(idx);
+  var sub  = expandAbbreviations(html.substring(idx));
   return '<span>' + main + '</span><span class="word-sub">' + sub + '</span>';
 }
 
@@ -708,7 +834,7 @@ function showKnopky() {
     knopkyWordSub.innerHTML  = '';
   } else {
     knopkyWordMain.innerHTML = langWord.substring(0, parenIdx).trim();
-    knopkyWordSub.innerHTML  = langWord.substring(parenIdx);
+    knopkyWordSub.innerHTML  = expandAbbreviations(langWord.substring(parenIdx));
   }
 
   // If already answered, just update the label/word and leave highlights intact
@@ -862,7 +988,7 @@ function showVpisyvanje() {
     vpisyvanjeWordSub.innerHTML  = '';
   } else {
     vpisyvanjeWordMain.innerHTML = langWord.substring(0, parenIdx).trim();
-    vpisyvanjeWordSub.innerHTML  = langWord.substring(parenIdx);
+    vpisyvanjeWordSub.innerHTML  = expandAbbreviations(langWord.substring(parenIdx));
   }
   if (vpisyvanjeAnswered) return;
   var isNewWord = (item.num !== vpisyvanjeCurrentNum);
@@ -932,10 +1058,247 @@ function checkVpisyvanje() {
 }
 
 function showCurrent() {
-  if (currentMode === 'karticky')   showCard();
-  else if (currentMode === 'knopky') showKnopky();
-  else                               showVpisyvanje();
+  if (currentMode === 'karticky')        showCard();
+  else if (currentMode === 'knopky')     showKnopky();
+  else if (currentMode === 'zmija')      showZmija();
+  else                                   showVpisyvanje();
 }
+
+// --- Zmija mode ---
+
+function dfsSnake(path, occupied, len) {
+  if (path.length === len) return true;
+  var cur = path[path.length - 1];
+  var moves = shuffle([
+    {row: cur.row - 1, col: cur.col    },   // up
+    {row: cur.row + 1, col: cur.col    },   // down
+    {row: cur.row,     col: cur.col + 1}    // right (never left)
+  ]);
+  for (var i = 0; i < moves.length; i++) {
+    var nr = moves[i].row, nc = moves[i].col;
+    if (nr < 0 || nr >= 5 || nc < 0 || nc >= 10 || occupied[nr][nc]) continue;
+    occupied[nr][nc] = true;
+    path.push({row: nr, col: nc});
+    if (dfsSnake(path, occupied, len)) return true;
+    path.pop();
+    occupied[nr][nc] = false;
+  }
+  return false;
+}
+
+// Place multiple variant snakes, each starting in col 0, sharing one occupied grid
+function placeAllSnakes(words) {
+  var occupied = [];
+  for (var r = 0; r < 5; r++) { occupied[r] = []; for (var c = 0; c < 10; c++) occupied[r][c] = false; }
+  var result = [];
+  var startRows = shuffle([0, 1, 2, 3, 4]);
+  var usedRows = {};
+  for (var w = 0; w < words.length; w++) {
+    var word = words[w];
+    for (var ri = 0; ri < startRows.length; ri++) {
+      var sr = startRows[ri];
+      if (usedRows[sr] || occupied[sr][0]) continue;
+      occupied[sr][0] = true;
+      var path = [{row: sr, col: 0}];
+      if (dfsSnake(path, occupied, word.length)) {
+        result.push({path: path, word: word});
+        usedRows[sr] = true;
+        break;
+      }
+      occupied[sr][0] = false;
+    }
+  }
+  return result;
+}
+
+function zmijaExtractVariants(item) {
+  var html = item.isv
+    .replace(/<sup>[^<]*<\/sup>/gi, '')
+    .replace(/<[^>]*>/g, '');
+  var seen = {};
+  return splitTopLevel(html)
+    .map(function(v) {
+      return v.replace(/\([^)]*\)/g, '')
+               .replace(/[^a-z\u010d\u0161\u017e\u011b]/gi, '')
+               .toLowerCase();
+    })
+    .filter(function(v) {
+      if (!v || seen[v]) return false;
+      seen[v] = true; return true;
+    })
+    .slice(0, 5);
+}
+
+function showZmija() {
+  if (deck.length === 0) return;
+  var item = deck[index];
+
+  zmijaLabel.textContent = catLabel(item.cat);
+  var langWord = item[currentLang] || '';
+  var parenIdx = langWord.indexOf('(');
+  if (parenIdx <= 0) { zmijaWordMain.innerHTML = langWord; zmijaWordSub.innerHTML = ''; }
+  else { zmijaWordMain.innerHTML = langWord.substring(0, parenIdx).trim(); zmijaWordSub.innerHTML = expandAbbreviations(langWord.substring(parenIdx)); }
+
+  if (item.num === zmijaCurrentNum) return; // grid already set for this word
+  zmijaCurrentNum = item.num;
+  zmijaAnswered = false;
+  zmijaCompleted = false;
+  zmijaNextAction = null;
+  zmijaSelected = 0;
+  zmijaActiveVariant = -1;
+  zmijaBtnSkip.textContent = 'Ne znam \u2192';
+  zmijaBtnSkip.style.cssText = '';
+
+  var words = zmijaExtractVariants(item);
+  if (!words.length) { nextCard(); return; }
+
+  zmijaGridData = [];
+  for (var r = 0; r < 5; r++) { zmijaGridData[r] = []; for (var c = 0; c < 10; c++) zmijaGridData[r][c] = null; }
+
+  var placed = placeAllSnakes(words);
+  if (!placed.length) { nextCard(); return; }
+  zmijaVariants = placed.map(function(p) { return p.path; });
+  for (var vi = 0; vi < placed.length; vi++)
+    for (var i = 0; i < placed[vi].path.length; i++)
+      zmijaGridData[placed[vi].path[i].row][placed[vi].path[i].col] = placed[vi].word[i];
+  for (var r = 0; r < 5; r++)
+    for (var c = 0; c < 10; c++)
+      if (zmijaGridData[r][c] === null)
+        zmijaGridData[r][c] = ISV_ALPHA[Math.floor(Math.random() * ISV_ALPHA.length)];
+
+  stats.textContent    = '#' + item.num;
+  progFill.style.width = Math.min(checkedCount / 50 * 100, 100).toFixed(1) + '%';
+
+  renderZmijaGrid();
+}
+
+function renderZmijaGrid() {
+  zmijaGridEl.innerHTML = '';
+  for (var r = 0; r < 5; r++) {
+    for (var c = 0; c < 10; c++) {
+      var btn = document.createElement('button');
+      btn.textContent   = zmijaGridData[r][c];
+      btn.dataset.row   = r;
+      btn.dataset.col   = c;
+      btn.className     = 'zmija-btn';
+      btn.addEventListener('click', handleZmijaClick);
+      zmijaGridEl.appendChild(btn);
+    }
+  }
+}
+
+function getZmijaBtn(row, col) {
+  return zmijaGridEl.querySelector('.zmija-btn[data-row="' + row + '"][data-col="' + col + '"]');
+}
+
+function updateZmijaHighlights() {
+  zmijaGridEl.querySelectorAll('.zmija-btn').forEach(function(b) { b.className = 'zmija-btn'; });
+  zmijaGridEl.querySelectorAll('.zmija-arrow').forEach(function(el) { el.remove(); });
+  if (zmijaAnswered) {
+    var otherIdx = 0;
+    zmijaVariants.forEach(function(path, vi) {
+      var cls = (zmijaCompleted && vi === zmijaActiveVariant)
+        ? 'zmija-correct'
+        : 'zmija-other-' + (otherIdx++);
+      path.forEach(function(p) { getZmijaBtn(p.row, p.col).classList.add(cls); });
+    });
+    addZmijaArrows();
+    return;
+  }
+  if (zmijaActiveVariant >= 0) {
+    var path = zmijaVariants[zmijaActiveVariant];
+    for (var i = 0; i < zmijaSelected; i++)
+      getZmijaBtn(path[i].row, path[i].col).classList.add('zmija-selected');
+  }
+}
+
+function addZmijaArrows() {
+  var gridRect = zmijaGridEl.getBoundingClientRect();
+  zmijaVariants.forEach(function(path) {
+    for (var i = 0; i < path.length - 1; i++) {
+      var a = getZmijaBtn(path[i].row,     path[i].col);
+      var b = getZmijaBtn(path[i+1].row,   path[i+1].col);
+      var ra = a.getBoundingClientRect();
+      var rb = b.getBoundingClientRect();
+      var mx = ((ra.left + ra.right)  / 2 + (rb.left + rb.right)  / 2) / 2 - gridRect.left;
+      var my = ((ra.top  + ra.bottom) / 2 + (rb.top  + rb.bottom) / 2) / 2 - gridRect.top;
+      var p = path[i], n = path[i+1];
+      var ch = n.col > p.col ? '\u2192' : (n.row < p.row ? '\u2191' : '\u2193');
+      var el = document.createElement('span');
+      el.className = 'zmija-arrow';
+      el.textContent = ch;
+      el.style.left = mx + 'px';
+      el.style.top  = my + 'px';
+      zmijaGridEl.appendChild(el);
+    }
+  });
+}
+
+function handleZmijaClick(e) {
+  if (zmijaAnswered) return;
+  var btn = e.currentTarget;
+  var row = parseInt(btn.dataset.row);
+  var col = parseInt(btn.dataset.col);
+
+  // No variant chosen yet — check if this cell starts any variant
+  if (zmijaActiveVariant < 0) {
+    for (var vi = 0; vi < zmijaVariants.length; vi++) {
+      var s = zmijaVariants[vi][0];
+      if (s.row === row && s.col === col) {
+        zmijaActiveVariant = vi;
+        zmijaSelected = 1;
+        updateZmijaHighlights();
+        return;
+      }
+    }
+    return;
+  }
+
+  var path = zmijaVariants[zmijaActiveVariant];
+
+  // Unclick last selected cell (or first, resetting variant choice)
+  if (zmijaSelected > 0 && path[zmijaSelected - 1].row === row && path[zmijaSelected - 1].col === col) {
+    zmijaSelected--;
+    if (zmijaSelected === 0) zmijaActiveVariant = -1;
+    updateZmijaHighlights();
+    return;
+  }
+
+  // Advance if this is the expected next cell
+  if (zmijaSelected < path.length) {
+    var expected = path[zmijaSelected];
+    if (expected.row === row && expected.col === col) {
+      zmijaSelected++;
+      if (zmijaSelected === path.length) {
+        zmijaAnswered = true;
+        zmijaCompleted = true;
+        checkedCount++;
+        progFill.style.width = Math.min(checkedCount / 50 * 100, 100).toFixed(1) + '%';
+        zmijaBtnSkip.textContent = 'Znam \u2192';
+        zmijaBtnSkip.style.background = 'rgba(50,200,100,0.3)';
+        zmijaBtnSkip.style.boxShadow  = 'none';
+        zmijaNextAction = function() { nextCard(); };
+      }
+      updateZmijaHighlights();
+    }
+  }
+}
+
+zmijaBtnBack.addEventListener('click', prevCard);
+zmijaBtnSkip.addEventListener('click', function() {
+  if (zmijaNextAction) { var fn = zmijaNextAction; zmijaNextAction = null; fn(); return; }
+  if (!zmijaAnswered) {
+    zmijaAnswered = true;
+    updateZmijaHighlights();
+    zmijaBtnSkip.textContent = 'Ne znam \u2192';
+    zmijaBtnSkip.style.background = 'rgba(220,80,80,0.25)';
+    zmijaBtnSkip.style.color      = 'rgba(255,160,160,0.9)';
+    zmijaBtnSkip.style.boxShadow  = 'none';
+    zmijaNextAction = function() { repeatQueue.push({ item: deck[index], remaining: 5 }); nextCard(); };
+  }
+});
+
+// --- end Zmija ---
 
 function flipCard() {
   clearTimeout(hintTimer);
@@ -963,8 +1326,10 @@ function nextCard() {
   knopkyOptions = null;
   knopkyAnswered = false;
   vpisyvanjeAnswered = false;
-  if (currentMode === 'knopky')      { flipThen(knopkyFlip,       showKnopky);      return; }
-  if (currentMode === 'vpisyvanje')  { flipThen(vpisyvanjeFlip,   showVpisyvanje);  return; }
+  zmijaCurrentNum = null; zmijaActiveVariant = -1;
+  if (currentMode === 'knopky')      { flipThen(knopkyFlip,     showKnopky);     return; }
+  if (currentMode === 'vpisyvanje')  { flipThen(vpisyvanjeFlip, showVpisyvanje); return; }
+  if (currentMode === 'zmija')       { flipThen(zmijaFlip,      showZmija);      return; }
   showCard();
 }
 
@@ -974,8 +1339,10 @@ function prevCard() {
   knopkyOptions = null;
   knopkyAnswered = false;
   vpisyvanjeAnswered = false;
-  if (currentMode === 'knopky')      { flipThen(knopkyFlip,       showKnopky);      return; }
-  if (currentMode === 'vpisyvanje')  { flipThen(vpisyvanjeFlip,   showVpisyvanje);  return; }
+  zmijaCurrentNum = null; zmijaActiveVariant = -1;
+  if (currentMode === 'knopky')      { flipThen(knopkyFlip,     showKnopky);     return; }
+  if (currentMode === 'vpisyvanje')  { flipThen(vpisyvanjeFlip, showVpisyvanje); return; }
+  if (currentMode === 'zmija')       { flipThen(zmijaFlip,      showZmija);      return; }
   showCard();
 }
 
@@ -1006,6 +1373,27 @@ var savedLang = localStorage.getItem('karticky_lang') || 'en';
 var savedMode = localStorage.getItem('karticky_mode') || 'karticky';
 setLang(savedLang);
 if (savedMode !== 'karticky') switchMode(savedMode);
+
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var wordParam = params.get('word');
+  var numParam  = params.get('num');
+  var entry = null;
+  if (numParam) {
+    var n = parseInt(numParam);
+    entry = VOCAB.find(function(w) { return w.num === n; }) || null;
+  } else if (wordParam) {
+    var q = wordParam.toLowerCase();
+    entry = VOCAB.find(function(w) { return w.en && w.en.toLowerCase() === q; }) ||
+            VOCAB.find(function(w) { return w.en && w.en.toLowerCase().indexOf(q) >= 0; }) || null;
+  }
+  if (entry) {
+    deck = deck.filter(function(w) { return w.num !== entry.num; });
+    deck.unshift(entry);
+    index = 0;
+    showCurrent();
+  }
+})();
 </script>
 </body>
 </html>

@@ -365,21 +365,6 @@
       font-weight: 400;
       opacity: 0.8;
     }
-    .options-grid.solo-mode .option-btn:not(.correct) {
-      display: none;
-    }
-    .options-grid.solo-mode {
-      grid-template-columns: 1fr;
-    }
-    .options-grid.solo-mode .option-btn.correct {
-      height: 154px;
-      font-size: 1.75rem;
-      font-weight: 700;
-    }
-    .options-grid.solo-mode .option-btn.correct .word-sub {
-      font-size: 0.75rem;
-      font-weight: 400;
-    }
 
     /* Vpisyvanje section */
     .vpisyvanje-section {
@@ -712,7 +697,6 @@ function showKnopky() {
 
   var correct = item.isv;
   optionsGrid.innerHTML = '';
-  optionsGrid.classList.remove('solo-mode');
   knopkyOptions.forEach(function(opt) {
     var btn = document.createElement('button');
     btn.className = 'option-btn';
@@ -737,7 +721,6 @@ function handleOptionClick(clickedBtn, isCorrect) {
 
   if (isCorrect) {
     clickedBtn.classList.add('correct');
-    optionsGrid.classList.add('solo-mode');
     knopkyNextAction = function() { nextCard(); };
   } else {
     clickedBtn.classList.add('wrong');

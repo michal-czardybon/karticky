@@ -700,8 +700,8 @@ const LANGS = [
   { code: 'de', flag: '\uD83C\uDDE9\uD83C\uDDEA', label: 'Deutsch' },
   { code: 'es', flag: '\uD83C\uDDEA\uD83C\uDDF8', label: 'Espa\u00F1ol' },
   { code: 'it', flag: '\uD83C\uDDEE\uD83C\uDDF9', label: 'Italiano' },
-  { code: 'sv', flag: '\uD83C\uDDF8\uD83C\uDDEA', label: 'Svenska' },
-  { code: 'ia', flag: '\uD83C\uDF10', label: 'Interlingua' }
+  { code: 'sv', flag: '\uD83C\uDDF8\uD83C\uDDEA', label: 'Svenska', hidden: true },
+  { code: 'ia', flag: '\uD83C\uDF10', label: 'Interlingua', hidden: true }
 ];
 
 var currentLang = 'en';
@@ -789,6 +789,7 @@ LANGS.forEach(function(lang) {
   btn.title = lang.label;
   btn.innerHTML = '<span class="flag">' + lang.flag + '</span><span class="code">' + lang.code.toUpperCase() + '</span>';
   btn.addEventListener('click', function() { setLang(lang.code); });
+  if (lang.hidden) btn.style.display = 'none';
   selector.appendChild(btn);
 });
 

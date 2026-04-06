@@ -221,7 +221,19 @@
     button.btn-yes:hover:not(:disabled) { box-shadow: 0 6px 28px rgba(58,123,213,0.6); }
     button.btn-yes:disabled { opacity: 0.3; cursor: default; box-shadow: none; }
 
-    .stats { color: var(--muted); font-size: 0.8rem; }
+    .stats { display: none; }
+    .card-num {
+      position: absolute;
+      bottom: 10px;
+      right: 14px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      opacity: 0.28;
+    }
+    .card-front .card-num { color: #1a1a2e; }
+    .card-back  .card-num { color: #fff; }
+    .knopky-word .card-num { color: #1a1a2e; }
 
     /* Mode dropdown */
     .mode-dropdown {
@@ -326,6 +338,7 @@
       gap: 16px;
     }
     .knopky-word {
+      position: relative;
       background: #eef4fb;
       border-radius: 16px;
       padding: 8px 24px;
@@ -615,7 +628,6 @@
     .btn-reset-hard:disabled { opacity: 0.3; cursor: default; box-shadow: none; }
 
     .example-sentence {
-      font-style: italic;
       color: rgba(255,255,255,0.45);
       font-size: 0.85rem;
       text-align: center;
@@ -667,10 +679,12 @@
         <span class="label" id="frontLabel"></span>
         <span class="word" id="wordFront"></span>
         <span class="tap-hint" id="tapHint">&#x1F447;</span>
+        <span class="card-num"></span>
       </div>
       <div class="card-face card-back">
         <span class="label">Med&#x17E;uslovjansky</span>
         <span class="word" id="wordIsv"></span>
+        <span class="card-num"></span>
       </div>
     </div>
   </div>
@@ -687,6 +701,7 @@
       <span class="label" id="knopkyLabel"></span>
       <div class="knopky-main" id="knopkyWordMain"></div>
       <div class="knopky-sub"  id="knopkyWordSub"></div>
+      <span class="card-num"></span>
     </div>
     <div class="options-grid" id="optionsGrid"></div>
     <div class="controls">
@@ -703,6 +718,7 @@
       <span class="label" id="vpisyvanjeLabel"></span>
       <div class="knopky-main" id="vpisyvanjeWordMain"></div>
       <div class="knopky-sub"  id="vpisyvanjeWordSub"></div>
+      <span class="card-num"></span>
     </div>
     <div class="vpisyvanje-input-wrap">
       <input type="text" class="vpisyvanje-input" id="vpisyvanjeInput" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
@@ -722,6 +738,7 @@
       <span class="label" id="zmijaLabel"></span>
       <div class="knopky-main" id="zmijaWordMain"></div>
       <div class="knopky-sub"  id="zmijaWordSub"></div>
+      <span class="card-num"></span>
     </div>
     <div class="zmija-grid" id="zmijaGrid"></div>
     <div class="controls">
@@ -908,6 +925,11 @@ function showExample(num) {
 
 function hideExample() {
   exampleSentence.classList.add('hidden');
+}
+
+function setCardNum(num) {
+  var text = num ? '#' + num : '';
+  document.querySelectorAll('.card-num').forEach(function(el) { el.textContent = text; });
 }
 
 var modeToggle = document.getElementById('modeToggle');
@@ -1212,7 +1234,7 @@ function showCard() {
   if (deck.length === 0) {
     wordFront.innerHTML = '(no data)';
     wordIsv.innerHTML = '';
-    stats.textContent = '';
+    setCardNum(null);
     return;
   }
   var item = deck[index];
@@ -1226,7 +1248,7 @@ function showCard() {
   hideExample();
   void card.offsetWidth;
   card.style.transition = '';
-  stats.textContent = '#' + item.num;
+  setCardNum(item.num);
   scheduleHint();
 }
 
@@ -1271,7 +1293,7 @@ function showKnopky() {
     optionsGrid.appendChild(btn);
   });
 
-  stats.textContent = '#' + item.num;
+  setCardNum(item.num);
 }
 
 function handleOptionClick(clickedBtn, isCorrect) {
@@ -1376,7 +1398,7 @@ function showVpisyvanje() {
     vpisyvanjeAnswer.textContent = '';
     vpisyvanjeBtnCheck.textContent = 'Prověri \u2192';
     vpisyvanjeBtnCheck.style.cssText = '';
-    stats.textContent = '#' + item.num;
+    setCardNum(item.num);
   }
   vpisyvanjeInput.focus();
 }
@@ -1592,7 +1614,7 @@ function showZmija() {
       if (zmijaGridData[r][c] === null)
         zmijaGridData[r][c] = ISV_ALPHA[Math.floor(Math.random() * ISV_ALPHA.length)];
 
-  stats.textContent = '#' + item.num;
+  setCardNum(item.num);
 
   renderZmijaGrid();
 }

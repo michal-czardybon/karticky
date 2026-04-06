@@ -557,6 +557,56 @@
       z-index: 2;
       line-height: 1;
     }
+
+    /* Victory screen */
+    #victorySect {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: min(420px, 100%);
+    }
+    #victorySect.hidden { display: none; }
+    .victory-card {
+      width: 100%;
+      background: linear-gradient(135deg, #1a2a12 0%, #0f1a0a 100%);
+      border: 1px solid rgba(240,192,64,0.25);
+      border-radius: var(--radius);
+      padding: 40px 32px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 80px rgba(240,192,64,0.06);
+    }
+    .victory-icon { font-size: 3.5rem; line-height: 1; margin-bottom: 4px; }
+    .victory-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #f0c040;
+      letter-spacing: 0.02em;
+    }
+    .victory-sub { font-size: 0.82rem; color: var(--muted); }
+    .victory-btns { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; justify-content: center; }
+    .btn-reset-all {
+      background: rgba(220,80,80,0.2);
+      color: rgba(255,160,160,0.9);
+      border: none; cursor: pointer; font-family: inherit;
+      font-size: 0.88rem; font-weight: 600;
+      border-radius: 999px; padding: 12px 22px;
+      transition: background 0.13s;
+    }
+    .btn-reset-all:hover { background: rgba(220,80,80,0.35); }
+    .btn-reset-hard {
+      background: var(--accent);
+      color: #fff; border: none; cursor: pointer; font-family: inherit;
+      font-size: 0.88rem; font-weight: 600;
+      border-radius: 999px; padding: 12px 22px;
+      box-shadow: 0 4px 20px rgba(58,123,213,0.4);
+      transition: box-shadow 0.13s, opacity 0.13s;
+    }
+    .btn-reset-hard:hover:not(:disabled) { box-shadow: 0 6px 28px rgba(58,123,213,0.6); }
+    .btn-reset-hard:disabled { opacity: 0.3; cursor: default; box-shadow: none; }
   </style>
 </head>
 <body>
@@ -660,6 +710,18 @@
       <button class="btn-back" id="zmijaBtnBack">&#x2190; Vrati</button>
       <button class="btn-no"   id="zmijaBtnNoAfter" style="display:none">Ne znam &#x2192;</button>
       <button class="btn-yes"  id="zmijaBtnSkip">Ne znam &#x2192;</button>
+    </div>
+  </div>
+</div>
+
+<div id="victorySect" class="hidden">
+  <div class="victory-card">
+    <div class="victory-icon">&#x1F3C6;</div>
+    <div class="victory-title">Vs&#x11B; slova naučena!</div>
+    <div class="victory-sub" id="victorySub"></div>
+    <div class="victory-btns">
+      <button class="btn-reset-all"  id="btnResetAll">Privrati vs&#x11B;</button>
+      <button class="btn-reset-hard" id="btnResetHard">Privrati t&#x11E;žke</button>
     </div>
   </div>
 </div>
@@ -792,6 +854,11 @@ var zmijaGridEl    = document.getElementById('zmijaGrid');
 var zmijaBtnBack      = document.getElementById('zmijaBtnBack');
 var zmijaBtnSkip      = document.getElementById('zmijaBtnSkip');
 var zmijaBtnNoAfter   = document.getElementById('zmijaBtnNoAfter');
+
+var victorySect  = document.getElementById('victorySect');
+var victorySub   = document.getElementById('victorySub');
+var btnResetAll  = document.getElementById('btnResetAll');
+var btnResetHard = document.getElementById('btnResetHard');
 
 var zmijaGridData      = [];  // 5×10 letter array
 var zmijaVariants      = [];  // array of paths, one per variant
@@ -1303,7 +1370,48 @@ function checkVpisyvanje() {
   }
 }
 
+function showVictory() {
+  var cat = getCatProgress().cat;
+  var all = filterVocabAll();
+  var nKnown   = all.filter(function(w) { return cat.known.indexOf(w.num)   >= 0; }).length;
+  var nLearned = all.filter(function(w) { return cat.learned.indexOf(w.num) >= 0; }).length;
+  victorySub.textContent = nKnown + ' znam, ' + nLearned + ' naučeny';
+  btnResetHard.disabled = nLearned === 0;
+  victorySect.classList.remove('hidden');
+  kartickySect.classList.add('hidden');
+  knopkySect.classList.add('hidden');
+  vpisyvanjeSect.classList.add('hidden');
+  zmijaSect.classList.add('hidden');
+}
+
+function hideVictory() {
+  victorySect.classList.add('hidden');
+  kartickySect.classList.toggle('hidden', currentMode !== 'karticky');
+  knopkySect.classList.toggle('hidden',   currentMode !== 'knopky');
+  vpisyvanjeSect.classList.toggle('hidden', currentMode !== 'vpisyvanje');
+  zmijaSect.classList.toggle('hidden',    currentMode !== 'zmija');
+}
+
+function resetAllProgress() {
+  var ref = getCatProgress();
+  ref.cat.known = []; ref.cat.learned = []; ref.cat.unknown = []; ref.cat.repeat = [];
+  ref.data[ref.key] = ref.cat;
+  saveProgress(ref.data);
+  repeatQueue = [];
+  rebuildDeck();
+}
+
+function resetLearnedProgress() {
+  var ref = getCatProgress();
+  ref.cat.learned = [];
+  ref.data[ref.key] = ref.cat;
+  saveProgress(ref.data);
+  rebuildDeck();
+}
+
 function showCurrent() {
+  if (deck.length === 0) { showVictory(); return; }
+  hideVictory();
   if (currentMode === 'karticky')        showCard();
   else if (currentMode === 'knopky')     showKnopky();
   else if (currentMode === 'zmija')      showZmija();
@@ -1667,6 +1775,8 @@ btnNo.addEventListener('click', function() {
   nextCard();
 });
 btnBack.addEventListener('click', prevCard);
+btnResetAll.addEventListener('click', resetAllProgress);
+btnResetHard.addEventListener('click', resetLearnedProgress);
 
 vpisyvanjeBtnBack.addEventListener('click', prevCard);
 vpisyvanjeBtnCheck.addEventListener('click', checkVpisyvanje);

@@ -687,7 +687,7 @@
         <span class="card-num"></span>
       </div>
       <div class="card-face card-back">
-        <span class="label">Med&#x17E;uslovjansky</span>
+        <span class="label" id="destLangLabel">Med&#x17E;uslovjansky</span>
         <span class="word" id="wordIsv"></span>
         <span class="card-num"></span>
       </div>
@@ -827,6 +827,40 @@ const LANGS = [
 
 var currentLang = 'en';
 
+var VALID_DEST = { pl:1, cz:1, sk:1, cr:1, en:1, de:1, es:1, it:1, sv:1, isv:1 };
+var destLang = (function() {
+  var p = new URLSearchParams(window.location.search).get('dst');
+  return (p && VALID_DEST[p.toLowerCase()]) ? p.toLowerCase() : 'isv';
+})();
+
+// Display name for each destination language (used on card back)
+var DEST_LANG_LABEL = {
+  isv: 'Med\u017Euslovjansky',
+  pl:  'Polski',
+  cz:  '\u010Cesky',
+  sk:  'Slovensky',
+  cr:  'Hrvatski',
+  en:  'English',
+  de:  'Deutsch',
+  es:  'Espa\u00F1ol',
+  it:  'Italiano',
+  sv:  'Svenska'
+};
+
+// Alphabet used for zmija noise letters per destination language
+var DEST_ALPHA_MAP = {
+  isv: ['a','b','c','\u010d','d','e','\u011b','f','g','h','i','j','k','l','m','n','o','p','r','s','\u0161','t','u','v','z','\u017e'],
+  pl:  ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','r','s','t','u','w','y','z','\u0105','\u0107','\u0119','\u0142','\u0144','\u00f3','\u015b','\u017a','\u017c'],
+  cz:  ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','r','s','t','u','v','y','z','\u00e1','\u010d','\u010f','\u00e9','\u011b','\u00ed','\u0148','\u00f3','\u0159','\u0161','\u0165','\u00fa','\u016f','\u00fd','\u017e'],
+  sk:  ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','r','s','t','u','v','y','z','\u00e1','\u010d','\u010f','\u00e9','\u00ed','\u013a','\u013e','\u0148','\u00f3','\u0155','\u0161','\u0165','\u00fa','\u00fd','\u017e'],
+  cr:  ['a','b','c','\u010d','\u0107','d','\u0111','e','f','g','h','i','j','k','l','m','n','o','p','r','s','\u0161','t','u','v','z','\u017e'],
+  en:  ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'],
+  de:  ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','r','s','t','u','v','w','z','\u00e4','\u00f6','\u00fc','\u00df'],
+  es:  ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','\u00f1','o','p','q','r','s','t','u','v','y','z','\u00e1','\u00e9','\u00ed','\u00f3','\u00fa'],
+  it:  ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','z','\u00e0','\u00e8','\u00e9','\u00ec','\u00f2','\u00f9'],
+  sv:  ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','r','s','t','u','v','y','z','\u00e5','\u00e4','\u00f6']
+};
+
 function catLabel(cat) {
   return (CATS[cat] && CATS[cat][currentLang]) || cat || '';
 }
@@ -950,6 +984,7 @@ var modeToggle = document.getElementById('modeToggle');
 var modeMenu   = document.getElementById('modeMenu');
 
 LANGS.forEach(function(lang) {
+  if (lang.code === destLang) return;  // dest lang not available as source
   var btn = document.createElement('button');
   btn.className = 'lang-btn' + (lang.code === currentLang ? ' active' : '');
   btn.dataset.code = lang.code;
@@ -987,7 +1022,9 @@ function updateCatToggle() {
 
 function isCatComplete(cat) {
   var words = VOCAB.filter(function(w) {
-    return w[currentLang] && w[currentLang].trim() !== '' && (!cat || w.cat === cat);
+    return w[currentLang] && w[currentLang].trim() !== ''
+        && w[destLang]    && w[destLang].trim()    !== ''
+        && (!cat || w.cat === cat);
   });
   if (!words.length) return false;
   var data = loadProgress();
@@ -1106,15 +1143,19 @@ function getCatKey() {
   return selectedCat || '__all__';
 }
 
+function progressKey() {
+  return destLang === 'isv' ? 'karticky_progress' : 'karticky_progress_' + destLang;
+}
+
 function loadProgress() {
   try {
-    var raw = localStorage.getItem('karticky_progress');
+    var raw = localStorage.getItem(progressKey());
     return raw ? JSON.parse(raw) : {};
   } catch(e) { return {}; }
 }
 
 function saveProgress(data) {
-  localStorage.setItem('karticky_progress', JSON.stringify(data));
+  localStorage.setItem(progressKey(), JSON.stringify(data));
 }
 
 function getCatProgress() {
@@ -1193,7 +1234,9 @@ function updateProgressBar() {
 
 function filterVocabAll() {
   return VOCAB.filter(function(w) {
-    return w[currentLang] && w[currentLang].trim() !== '' && (!selectedCat || w.cat === selectedCat);
+    return w[currentLang] && w[currentLang].trim() !== ''
+        && w[destLang]    && w[destLang].trim()    !== ''
+        && (!selectedCat || w.cat === selectedCat);
   });
 }
 
@@ -1255,7 +1298,7 @@ function showCard() {
   var item = deck[index];
   frontLabel.textContent = catLabel(item.cat);
   wordFront.innerHTML = formatWord(item[currentLang]);
-  wordIsv.innerHTML   = formatWord(item.isv);
+  wordIsv.innerHTML   = formatWord(item[destLang]);
   card.style.transition = 'none';
   card.classList.remove('flipped');
   flipped = false;
@@ -1291,13 +1334,13 @@ function showKnopky() {
 
   // Generate options only when word changes (knopkyOptions === null)
   if (!knopkyOptions) {
-    var correct = item.isv;
-    var pool = shuffle(VOCAB.filter(function(w) { return w.isv && w.isv !== correct; }));
-    var wrongs = pool.slice(0, 3).map(function(w) { return w.isv; });
+    var correct = item[destLang];
+    var pool = shuffle(VOCAB.filter(function(w) { return w[destLang] && w[destLang] !== correct; }));
+    var wrongs = pool.slice(0, 3).map(function(w) { return w[destLang]; });
     knopkyOptions = shuffle([correct].concat(wrongs));
   }
 
-  var correct = item.isv;
+  var correct = item[destLang];
   optionsGrid.innerHTML = '';
   knopkyOptions.forEach(function(opt) {
     var btn = document.createElement('button');
@@ -1424,7 +1467,7 @@ function checkVpisyvanje() {
     return;
   }
   var item = deck[index];
-  var isvClean = item.isv
+  var isvClean = item[destLang]
     .replace(/<sup>[^<]*<\/sup>/gi, '').replace(/<[^>]*>/g, '')
     .replace(/\s+\([^)]*\)/g, '');  // strip explanatory parens (space-separated)
   var userNorm = normalize(vpisyvanjeInput.value);
@@ -1442,7 +1485,7 @@ function checkVpisyvanje() {
     markCorrect(item.num);
     playCorrect();
     vpisyvanjeInput.style.visibility = 'hidden';
-    var rawVariants = splitTopLevel(item.isv);
+    var rawVariants = splitTopLevel(item[destLang]);
     vpisyvanjeCorrectOverlay.innerHTML = '<span>' + rawVariants.map(function(v, i) {
       var t = v.trim();
       if (i !== matchedIdx) return t;
@@ -1462,7 +1505,7 @@ function checkVpisyvanje() {
     vpisyvanjeBtnCheck.style.background = 'rgba(220,80,80,0.25)';
     vpisyvanjeBtnCheck.style.color      = 'rgba(255,160,160,0.9)';
     vpisyvanjeBtnCheck.style.boxShadow  = 'none';
-    vpisyvanjeAnswer.innerHTML = formatWord(item.isv);
+    vpisyvanjeAnswer.innerHTML = formatWord(item[destLang]);
     vpisyvanjeNextAction = function() {
       requeue(item.num, 5);
       nextCard();
@@ -1574,14 +1617,14 @@ function placeAllSnakes(words) {
 }
 
 function zmijaExtractVariants(item) {
-  var html = item.isv
+  var html = (item[destLang] || '')
     .replace(/<sup>[^<]*<\/sup>/gi, '')
     .replace(/<[^>]*>/g, '');
   var seen = {};
   return splitTopLevel(html)
     .map(function(v) {
       return v.replace(/\([^)]*\)/g, '')
-               .replace(/[^a-z\u010d\u0161\u017e\u011b]/gi, '')
+               .replace(/[^a-z\u00c0-\u024f]/gi, '')
                .toLowerCase();
     })
     .filter(function(v) {
@@ -1624,10 +1667,11 @@ function showZmija() {
   for (var vi = 0; vi < placed.length; vi++)
     for (var i = 0; i < placed[vi].path.length; i++)
       zmijaGridData[placed[vi].path[i].row][placed[vi].path[i].col] = placed[vi].word[i];
+  var _da = DEST_ALPHA_MAP[destLang] || ISV_ALPHA;
   for (var r = 0; r < 5; r++)
     for (var c = 0; c < 10; c++)
       if (zmijaGridData[r][c] === null)
-        zmijaGridData[r][c] = ISV_ALPHA[Math.floor(Math.random() * ISV_ALPHA.length)];
+        zmijaGridData[r][c] = _da[Math.floor(Math.random() * _da.length)];
 
   setCardNum(item.num);
 
@@ -1757,7 +1801,7 @@ function handleZmijaClick(e) {
       zmijaBtnSkip.style.boxShadow  = 'none';
       zmijaBtnNoAfter.style.display = '';
       zmijaNextAction = function() { nextCard(); };
-      showExample(item.num);
+      showExample(deck[index].num);
     }
     updateZmijaHighlights();
   }
@@ -1902,7 +1946,10 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'n') { if (!btnNo.disabled && deck.length > 0) { var num = deck[index].num; markWrong(num); requeue(num, 5); nextCard(); } }
 });
 
+document.getElementById('destLangLabel').textContent = DEST_LANG_LABEL[destLang] || destLang;
+
 var savedLang = localStorage.getItem('karticky_lang') || 'en';
+if (savedLang === destLang) savedLang = (destLang === 'en' ? 'pl' : 'en');
 var savedMode = localStorage.getItem('karticky_mode') || 'karticky';
 var savedCat  = localStorage.getItem('karticky_cat');
 if (savedCat !== null) selectedCat = savedCat === '' ? null : savedCat;

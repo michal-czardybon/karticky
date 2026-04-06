@@ -630,13 +630,16 @@
     .example-sentence {
       color: rgba(255,255,255,0.45);
       font-size: 0.85rem;
-      text-align: center;
       max-width: min(420px, 100%);
       line-height: 1.5;
       opacity: 1;
       transition: opacity 0.25s;
+      display: flex;
+      flex-direction: column;
     }
     .example-sentence.hidden { opacity: 0; pointer-events: none; }
+    .example-main { text-align: center; }
+    .example-attr { text-align: right; opacity: 0.7; font-size: 0.8em; }
   </style>
 </head>
 <body>
@@ -916,7 +919,16 @@ var exampleSentence = document.getElementById('exampleSentence');
 function showExample(num) {
   var text = (typeof EXAMPLES !== 'undefined') ? (EXAMPLES[String(num)] || '') : '';
   if (text) {
-    exampleSentence.textContent = text;
+    var dashIdx = text.indexOf('--');
+    if (dashIdx >= 0) {
+      var main  = text.substring(0, dashIdx).trim();
+      var attr  = text.substring(dashIdx).trim();
+      exampleSentence.innerHTML =
+        '<span class="example-main">' + main + '</span>' +
+        '<span class="example-attr">' + attr + '</span>';
+    } else {
+      exampleSentence.textContent = text;
+    }
     exampleSentence.classList.remove('hidden');
   } else {
     exampleSentence.classList.add('hidden');

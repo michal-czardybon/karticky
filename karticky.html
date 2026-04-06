@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="theme-color" content="#1a1a2e">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
   <title>Med&#x17E;uslovjanske karti&#x010D;ky</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -717,11 +719,11 @@
 <div id="victorySect" class="hidden">
   <div class="victory-card">
     <div class="victory-icon">&#x1F3C6;</div>
-    <div class="victory-title">Vs&#x11B; slova naučena!</div>
+    <div class="victory-title" id="victoryTitle"></div>
     <div class="victory-sub" id="victorySub"></div>
     <div class="victory-btns">
-      <button class="btn-reset-all"  id="btnResetAll">Privrati vs&#x11B;</button>
-      <button class="btn-reset-hard" id="btnResetHard">Privrati t&#x11E;žke</button>
+      <button class="btn-reset-all"  id="btnResetAll">Obnovi vs&#x11B;</button>
+      <button class="btn-reset-hard" id="btnResetHard">Obnovi naučene</button>
     </div>
   </div>
 </div>
@@ -856,6 +858,7 @@ var zmijaBtnSkip      = document.getElementById('zmijaBtnSkip');
 var zmijaBtnNoAfter   = document.getElementById('zmijaBtnNoAfter');
 
 var victorySect  = document.getElementById('victorySect');
+var victoryTitle = document.getElementById('victoryTitle');
 var victorySub   = document.getElementById('victorySub');
 var btnResetAll  = document.getElementById('btnResetAll');
 var btnResetHard = document.getElementById('btnResetHard');
@@ -1375,7 +1378,10 @@ function showVictory() {
   var all = filterVocabAll();
   var nKnown   = all.filter(function(w) { return cat.known.indexOf(w.num)   >= 0; }).length;
   var nLearned = all.filter(function(w) { return cat.learned.indexOf(w.num) >= 0; }).length;
-  victorySub.textContent = nKnown + ' znam, ' + nLearned + ' naučeny';
+  victoryTitle.textContent = selectedCat
+    ? 'Vse slova iz kategorije \u201C' + catLabel(selectedCat) + '\u201D naučene!'
+    : 'Vse slova naučene!';
+  victorySub.textContent = nKnown + ' znam, ' + nLearned + ' naučene';
   btnResetHard.disabled = nLearned === 0;
   victorySect.classList.remove('hidden');
   kartickySect.classList.add('hidden');
@@ -1825,6 +1831,10 @@ if (savedMode !== 'karticky') switchMode(savedMode);
     showCurrent();
   }
 })();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
 </script>
 </body>
 </html>

@@ -613,6 +613,18 @@
     }
     .btn-reset-hard:hover:not(:disabled) { box-shadow: 0 6px 28px rgba(58,123,213,0.6); }
     .btn-reset-hard:disabled { opacity: 0.3; cursor: default; box-shadow: none; }
+
+    .example-sentence {
+      font-style: italic;
+      color: rgba(255,255,255,0.45);
+      font-size: 0.85rem;
+      text-align: center;
+      max-width: min(420px, 100%);
+      line-height: 1.5;
+      opacity: 1;
+      transition: opacity 0.25s;
+    }
+    .example-sentence.hidden { opacity: 0; pointer-events: none; }
   </style>
 </head>
 <body>
@@ -733,11 +745,13 @@
   </div>
 </div>
 
+<div class="example-sentence hidden" id="exampleSentence"></div>
 <div class="stats" id="stats"></div>
 
 <script src="vocab.js"></script>
 <script src="categories.js"></script>
 <script src="utils.js"></script>
+<script src="examples.js"></script>
 <script>
 
 function playCorrect() {
@@ -879,6 +893,22 @@ var zmijaNextAction    = null;
 var zmijaCurrentNum    = null;
 
 var ISV_ALPHA = ['a','b','c','\u010d','d','e','\u011b','f','g','h','i','j','k','l','m','n','o','p','r','s','\u0161','t','u','v','z','\u017e'];
+
+var exampleSentence = document.getElementById('exampleSentence');
+
+function showExample(num) {
+  var text = (typeof EXAMPLES !== 'undefined') ? (EXAMPLES[String(num)] || '') : '';
+  if (text) {
+    exampleSentence.textContent = text;
+    exampleSentence.classList.remove('hidden');
+  } else {
+    exampleSentence.classList.add('hidden');
+  }
+}
+
+function hideExample() {
+  exampleSentence.classList.add('hidden');
+}
 
 var modeToggle = document.getElementById('modeToggle');
 var modeMenu   = document.getElementById('modeMenu');
@@ -1193,6 +1223,7 @@ function showCard() {
   card.classList.remove('flipped');
   flipped = false;
   btnNo.disabled = true;
+  hideExample();
   void card.offsetWidth;
   card.style.transition = '';
   stats.textContent = '#' + item.num;
@@ -1278,6 +1309,7 @@ function handleOptionClick(clickedBtn, isCorrect) {
       nextCard();
     };
   }
+  showExample(num);
 
   function advance() {
     if (knopkyGeneration !== myGen) return;
@@ -1399,6 +1431,7 @@ function checkVpisyvanje() {
       nextCard();
     };
   }
+  showExample(item.num);
 }
 
 function showVictory() {
@@ -1687,6 +1720,7 @@ function handleZmijaClick(e) {
       zmijaBtnSkip.style.boxShadow  = 'none';
       zmijaBtnNoAfter.style.display = '';
       zmijaNextAction = function() { nextCard(); };
+      showExample(item.num);
     }
     updateZmijaHighlights();
   }
@@ -1740,6 +1774,7 @@ zmijaBtnSkip.addEventListener('click', function() {
     zmijaBtnSkip.style.color      = 'rgba(255,160,160,0.9)';
     zmijaBtnSkip.style.boxShadow  = 'none';
     zmijaNextAction = function() { requeue(num, 5); nextCard(); };
+    showExample(num);
   }
 });
 
@@ -1758,7 +1793,8 @@ function flipCard() {
   tapHint.classList.remove('visible');
   flipped = !flipped;
   card.classList.toggle('flipped', flipped);
-  if (flipped) { flipCount++; btnNo.disabled = false; }
+  if (flipped) { flipCount++; btnNo.disabled = false; showExample(deck[index].num); }
+  else { hideExample(); }
 }
 
 function nextCard() {
@@ -1779,6 +1815,7 @@ function nextCard() {
   knopkyAnswered = false;
   vpisyvanjeAnswered = false;
   zmijaCurrentNum = null; zmijaActiveVariant = -1;
+  hideExample();
   if (deck.length === 0) { showCurrent(); return; }
   if (currentMode === 'knopky')      { flipThen(knopkyFlip,     showKnopky,     knopkyFlipDir); knopkyFlipDir = 1; return; }
   if (currentMode === 'vpisyvanje')  { flipThen(vpisyvanjeFlip, showVpisyvanje); return; }
@@ -1793,6 +1830,7 @@ function prevCard() {
   knopkyAnswered = false;
   vpisyvanjeAnswered = false;
   zmijaCurrentNum = null; zmijaActiveVariant = -1;
+  hideExample();
   if (currentMode === 'knopky')      { flipThen(knopkyFlip,     showKnopky);     return; }
   if (currentMode === 'vpisyvanje')  { flipThen(vpisyvanjeFlip, showVpisyvanje); return; }
   if (currentMode === 'zmija')       { flipThen(zmijaFlip,      showZmija);      return; }

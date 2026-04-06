@@ -588,7 +588,8 @@
       color: #f0c040;
       letter-spacing: 0.02em;
     }
-    .victory-sub { font-size: 0.82rem; color: var(--muted); }
+    .victory-cat  { font-size: 1.1rem; font-weight: 700; color: #fff; }
+    .victory-sub  { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
     .victory-btns { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; justify-content: center; }
     .btn-reset-all {
       background: rgba(220,80,80,0.2);
@@ -720,6 +721,7 @@
   <div class="victory-card">
     <div class="victory-icon">&#x1F3C6;</div>
     <div class="victory-title" id="victoryTitle"></div>
+    <div class="victory-cat" id="victoryCat"></div>
     <div class="victory-sub" id="victorySub"></div>
     <div class="victory-btns">
       <button class="btn-reset-all"  id="btnResetAll">Obnovi vs&#x11B;</button>
@@ -859,6 +861,7 @@ var zmijaBtnNoAfter   = document.getElementById('zmijaBtnNoAfter');
 
 var victorySect  = document.getElementById('victorySect');
 var victoryTitle = document.getElementById('victoryTitle');
+var victoryCat   = document.getElementById('victoryCat');
 var victorySub   = document.getElementById('victorySub');
 var btnResetAll  = document.getElementById('btnResetAll');
 var btnResetHard = document.getElementById('btnResetHard');
@@ -1378,10 +1381,9 @@ function showVictory() {
   var all = filterVocabAll();
   var nKnown   = all.filter(function(w) { return cat.known.indexOf(w.num)   >= 0; }).length;
   var nLearned = all.filter(function(w) { return cat.learned.indexOf(w.num) >= 0; }).length;
-  victoryTitle.textContent = selectedCat
-    ? 'Vse slova iz kategorije \u201C' + catLabel(selectedCat) + '\u201D naučene!'
-    : 'Vse slova naučene!';
-  victorySub.textContent = nKnown + ' znam, ' + nLearned + ' naučene';
+  victoryTitle.textContent = 'Diplom ukon\u010Denja:';
+  victoryCat.textContent   = selectedCat ? catLabel(selectedCat) : 'Vse kategorije';
+  victorySub.textContent   = nKnown + ' znam, ' + nLearned + ' naučene';
   btnResetHard.disabled = nLearned === 0;
   victorySect.classList.remove('hidden');
   kartickySect.classList.add('hidden');

@@ -620,6 +620,11 @@
       <div class="knopky-sub"  id="knopkyWordSub"></div>
     </div>
     <div class="options-grid" id="optionsGrid"></div>
+    <div class="controls">
+      <button class="btn-back" id="knopkyBtnBack">&#x2190; Vrati</button>
+      <button class="btn-no"   id="knopkyBtnNo">Ne znam &#x2192;</button>
+      <button class="btn-yes"  id="knopkyBtnYes">Znam &#x2192;</button>
+    </div>
   </div>
 </div>
 
@@ -753,6 +758,10 @@ var knopkyOptions    = null;
 var knopkyAnswered   = false;
 var knopkyAutoTimer  = null;
 var knopkyGeneration = 0;
+var knopkyFlipDir    = 1;  // 1 = right, -1 = left
+var knopkyBtnBack    = document.getElementById('knopkyBtnBack');
+var knopkyBtnNo      = document.getElementById('knopkyBtnNo');
+var knopkyBtnYes     = document.getElementById('knopkyBtnYes');
 
 var knopkyFlip       = document.getElementById('knopkyFlip');
 
@@ -840,6 +849,7 @@ function buildCatList() {
     div.addEventListener('click', function(e) {
       e.stopPropagation();
       selectedCat = cat;
+      localStorage.setItem('karticky_cat', cat === null ? '' : cat);
       updateCatToggle();
       catMenu.classList.add('hidden');
       rebuildDeck();
@@ -1042,8 +1052,9 @@ function rebuildDeck() {
   var currentNum = deck[index] ? deck[index].num : null;
   deck = buildDeck();
   var found = currentNum != null ? deck.findIndex(function(w) { return w.num === currentNum; }) : -1;
-  if (found >= 0) { index = found; }
-  else { index = 0; knopkyOptions = null; zmijaCurrentNum = null; }
+  if (found >= 0) { index = found; } else { index = 0; knopkyOptions = null; zmijaCurrentNum = null; }
+  knopkyAnswered = false;
+  knopkyNextAction = null;
   updateProgressBar();
   showCurrent();
 }
@@ -1055,7 +1066,7 @@ function setLang(code) {
     b.classList.toggle('active', b.dataset.code === code);
   });
   updateCatToggle();
-  rebuildDeck();
+  if (deck.length === 0) { rebuildDeck(); } else { updateProgressBar(); showCurrent(); }
 }
 
 function scheduleHint() {
@@ -1139,6 +1150,11 @@ function handleOptionClick(clickedBtn, isCorrect) {
   var allBtns = optionsGrid.querySelectorAll('.option-btn');
   allBtns.forEach(function(b) { b.disabled = true; });
 
+  // Flip direction: left if correct answer is in left column (even index), right otherwise
+  var btnsArr = [].slice.call(allBtns);
+  var correctIdx = btnsArr.findIndex(function(b) { return b.dataset.correct === 'true'; });
+  knopkyFlipDir = (correctIdx % 2 === 0) ? -1 : 1;
+
   var num = deck[index].num;
   if (isCorrect) {
     markCorrect(num);
@@ -1182,13 +1198,14 @@ function handleOptionClick(clickedBtn, isCorrect) {
 
 var FLIP_MS = 260;
 
-function flipThen(el, fn) {
+function flipThen(el, fn, dir) {
+  if (dir === undefined) dir = 1;
   el.style.transition = 'transform ' + FLIP_MS + 'ms cubic-bezier(0.4,0.2,0.2,1)';
-  el.style.transform  = 'rotateY(90deg)';
+  el.style.transform  = 'rotateY(' + (90 * dir) + 'deg)';
   setTimeout(function() {
     fn();
     el.style.transition = 'none';
-    el.style.transform  = 'rotateY(-90deg)';
+    el.style.transform  = 'rotateY(' + (-90 * dir) + 'deg)';
     el.getBoundingClientRect(); // force reflow
     el.style.transition = 'transform ' + FLIP_MS + 'ms cubic-bezier(0.4,0.2,0.2,1)';
     el.style.transform  = 'rotateY(0deg)';
@@ -1527,6 +1544,26 @@ function handleZmijaClick(e) {
   }
 }
 
+knopkyBtnBack.addEventListener('click', prevCard);
+knopkyBtnNo.addEventListener('click', function() {
+  if (knopkyAnswered) {
+    if (knopkyNextAction) { var fn = knopkyNextAction; knopkyNextAction = null; fn(); }
+    return;
+  }
+  var num = deck[index].num;
+  markWrong(num);
+  requeue(num, 5);
+  nextCard();
+});
+knopkyBtnYes.addEventListener('click', function() {
+  if (knopkyAnswered) {
+    if (knopkyNextAction) { var fn = knopkyNextAction; knopkyNextAction = null; fn(); }
+    return;
+  }
+  markCorrect(deck[index].num);
+  nextCard();
+});
+
 zmijaBtnBack.addEventListener('click', prevCard);
 zmijaBtnSkip.addEventListener('click', function() {
   if (zmijaNextAction) {
@@ -1582,7 +1619,7 @@ function nextCard() {
   knopkyAnswered = false;
   vpisyvanjeAnswered = false;
   zmijaCurrentNum = null; zmijaActiveVariant = -1;
-  if (currentMode === 'knopky')      { flipThen(knopkyFlip,     showKnopky);     return; }
+  if (currentMode === 'knopky')      { flipThen(knopkyFlip,     showKnopky,     knopkyFlipDir); knopkyFlipDir = 1; return; }
   if (currentMode === 'vpisyvanje')  { flipThen(vpisyvanjeFlip, showVpisyvanje); return; }
   if (currentMode === 'zmija')       { flipThen(zmijaFlip,      showZmija);      return; }
   showCard();
@@ -1629,6 +1666,8 @@ document.addEventListener('keydown', function(e) {
 
 var savedLang = localStorage.getItem('karticky_lang') || 'en';
 var savedMode = localStorage.getItem('karticky_mode') || 'karticky';
+var savedCat  = localStorage.getItem('karticky_cat');
+if (savedCat !== null) selectedCat = savedCat === '' ? null : savedCat;
 setLang(savedLang);
 if (savedMode !== 'karticky') switchMode(savedMode);
 

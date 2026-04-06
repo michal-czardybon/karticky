@@ -216,7 +216,8 @@
       color: #fff;
       box-shadow: 0 4px 20px rgba(58,123,213,0.4);
     }
-    button.btn-yes:hover { box-shadow: 0 6px 28px rgba(58,123,213,0.6); }
+    button.btn-yes:hover:not(:disabled) { box-shadow: 0 6px 28px rgba(58,123,213,0.6); }
+    button.btn-yes:disabled { opacity: 0.3; cursor: default; box-shadow: none; }
 
     .stats { color: var(--muted); font-size: 0.8rem; }
 
@@ -623,7 +624,7 @@
     <div class="controls">
       <button class="btn-back" id="knopkyBtnBack">&#x2190; Vrati</button>
       <button class="btn-no"   id="knopkyBtnNo">Ne znam &#x2192;</button>
-      <button class="btn-yes"  id="knopkyBtnYes">Znam &#x2192;</button>
+      <button class="btn-yes"  id="knopkyBtnYes" disabled>Znam &#x2192;</button>
     </div>
   </div>
 </div>
@@ -759,9 +760,11 @@ var knopkyAnswered   = false;
 var knopkyAutoTimer  = null;
 var knopkyGeneration = 0;
 var knopkyFlipDir    = 1;  // 1 = right, -1 = left
-var knopkyBtnBack    = document.getElementById('knopkyBtnBack');
-var knopkyBtnNo      = document.getElementById('knopkyBtnNo');
-var knopkyBtnYes     = document.getElementById('knopkyBtnYes');
+var knopkyBtnBack        = document.getElementById('knopkyBtnBack');
+var knopkyBtnNo          = document.getElementById('knopkyBtnNo');
+var knopkyBtnYes         = document.getElementById('knopkyBtnYes');
+var knopkyAnswerNum      = null;
+var knopkyAnswerCorrect  = false;
 
 var knopkyFlip       = document.getElementById('knopkyFlip');
 
@@ -1116,6 +1119,7 @@ function showKnopky() {
   if (knopkyAnswered) return;
 
   knopkyNextAction = null;
+  knopkyBtnYes.disabled = true;
   clearTimeout(knopkyAutoTimer);
   knopkyGeneration++;
 
@@ -1149,6 +1153,7 @@ function handleOptionClick(clickedBtn, isCorrect) {
 
   var allBtns = optionsGrid.querySelectorAll('.option-btn');
   allBtns.forEach(function(b) { b.disabled = true; });
+  knopkyBtnYes.disabled = false;
 
   // Flip direction: left if correct answer is in left column (even index), right otherwise
   var btnsArr = [].slice.call(allBtns);
@@ -1156,6 +1161,8 @@ function handleOptionClick(clickedBtn, isCorrect) {
   knopkyFlipDir = (correctIdx % 2 === 0) ? -1 : 1;
 
   var num = deck[index].num;
+  knopkyAnswerNum     = num;
+  knopkyAnswerCorrect = isCorrect;
   if (isCorrect) {
     markCorrect(num);
     playCorrect();
@@ -1547,7 +1554,14 @@ function handleZmijaClick(e) {
 knopkyBtnBack.addEventListener('click', prevCard);
 knopkyBtnNo.addEventListener('click', function() {
   if (knopkyAnswered) {
-    if (knopkyNextAction) { var fn = knopkyNextAction; knopkyNextAction = null; fn(); }
+    knopkyNextAction = null;
+    if (knopkyAnswerCorrect) {
+      // User overrides correct answer → unknown
+      setWordStatus(knopkyAnswerNum, 'unknown');
+      updateProgressBar();
+    }
+    requeue(knopkyAnswerNum, 5);
+    nextCard();
     return;
   }
   var num = deck[index].num;
@@ -1557,7 +1571,12 @@ knopkyBtnNo.addEventListener('click', function() {
 });
 knopkyBtnYes.addEventListener('click', function() {
   if (knopkyAnswered) {
-    if (knopkyNextAction) { var fn = knopkyNextAction; knopkyNextAction = null; fn(); }
+    knopkyNextAction = null;
+    if (!knopkyAnswerCorrect) {
+      // User overrides wrong answer → repeat (markCorrect on unknown word)
+      markCorrect(knopkyAnswerNum);
+    }
+    nextCard();
     return;
   }
   markCorrect(deck[index].num);

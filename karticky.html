@@ -72,18 +72,21 @@
 
     .progress-bar {
       width: min(420px, 100%);
-      height: 4px;
-      background: rgba(255,255,255,0.08);
+      height: 6px;
       border-radius: 99px;
       overflow: hidden;
+      display: flex;
     }
-    .progress-fill {
+    .progress-seg {
       height: 100%;
-      background: var(--accent);
-      border-radius: 99px;
       transition: width 0.4s ease;
       width: 0%;
     }
+    .progress-seg.seg-known   { background: #32c864; }
+    .progress-seg.seg-learned { background: #7ecfea; }
+    .progress-seg.seg-repeat  { background: #f0c040; }
+    .progress-seg.seg-unknown { background: #dc3c3c; }
+    .progress-seg.seg-new     { background: rgba(255,255,255,0.15); }
 
     .scene {
       width: min(420px, 100%);
@@ -580,7 +583,13 @@
 
 <div class="lang-selector" id="langSelector"></div>
 
-<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+<div class="progress-bar" id="progressBar">
+  <div class="progress-seg seg-known"   id="segKnown"></div>
+  <div class="progress-seg seg-learned" id="segLearned"></div>
+  <div class="progress-seg seg-repeat"  id="segRepeat"></div>
+  <div class="progress-seg seg-unknown" id="segUnknown"></div>
+  <div class="progress-seg seg-new"     id="segNew"></div>
+</div>
 
 <div class="game-section" id="kartickySect">
   <div class="scene">
@@ -722,10 +731,13 @@ var frontLabel    = document.getElementById('frontLabel');
 var btnBack       = document.getElementById('btnBack');
 var btnNo         = document.getElementById('btnNo');
 var btnYes        = document.getElementById('btnYes');
-var checkedCount  = 0;
 var repeatQueue   = [];
 var stats         = document.getElementById('stats');
-var progFill      = document.getElementById('progressFill');
+var segKnown      = document.getElementById('segKnown');
+var segLearned    = document.getElementById('segLearned');
+var segRepeat     = document.getElementById('segRepeat');
+var segUnknown    = document.getElementById('segUnknown');
+var segNew        = document.getElementById('segNew');
 var tapHint       = document.getElementById('tapHint');
 var selector      = document.getElementById('langSelector');
 var hintTimer     = null;
@@ -891,11 +903,17 @@ function expandAbbreviations(s) {
 }
 
 function formatWord(html) {
-  var idx = html.indexOf('(');
-  if (idx <= 0) return '<span>' + html + '</span>';
-  var main = html.substring(0, idx).trim();
-  var sub  = expandAbbreviations(html.substring(idx));
-  return '<span>' + main + '</span><span class="word-sub">' + sub + '</span>';
+  var variants = splitTopLevel(html).map(function(v) { return v.trim(); }).filter(Boolean);
+  if (!variants.length) return '<span></span>';
+  var multi = variants.length > 1;
+  return variants.map(function(v) {
+    var idx = v.indexOf('(');
+    if (idx <= 0) return '<span>' + v + '</span>';
+    var main = v.substring(0, idx).trim();
+    var sub  = expandAbbreviations(v.substring(idx));
+    if (!multi) return '<span>' + main + '</span><span class="word-sub">' + sub + '</span>';
+    return '<span>' + main + ' <span class="word-sub">' + sub + '</span></span>';
+  }).join('');
 }
 
 function shuffle(arr) {
@@ -907,18 +925,126 @@ function shuffle(arr) {
   return a;
 }
 
-function filterVocab() {
+// ── Progress management ──────────────────────────────────────────────────
+
+function getCatKey() {
+  return selectedCat || '__all__';
+}
+
+function loadProgress() {
+  try {
+    var raw = localStorage.getItem('karticky_progress');
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) { return {}; }
+}
+
+function saveProgress(data) {
+  localStorage.setItem('karticky_progress', JSON.stringify(data));
+}
+
+function getCatProgress() {
+  var data = loadProgress();
+  var key  = getCatKey();
+  if (!data[key]) data[key] = { known: [], learned: [], unknown: [], repeat: [] };
+  return { data: data, key: key, cat: data[key] };
+}
+
+function getWordStatus(num) {
+  var p = getCatProgress().cat;
+  if (p.known.indexOf(num)   >= 0) return 'known';
+  if (p.learned.indexOf(num) >= 0) return 'learned';
+  if (p.repeat.indexOf(num)  >= 0) return 'repeat';
+  if (p.unknown.indexOf(num) >= 0) return 'unknown';
+  return 'new';
+}
+
+function setWordStatus(num, status) {
+  var ref  = getCatProgress();
+  var data = ref.data, key = ref.key, cat = ref.cat;
+  ['known','learned','repeat','unknown'].forEach(function(s) {
+    cat[s] = cat[s].filter(function(n) { return n !== num; });
+  });
+  if (status !== 'new') cat[status].push(num);
+  data[key] = cat;
+  saveProgress(data);
+}
+
+function requeue(num, delay) {
+  repeatQueue = repeatQueue.filter(function(r) { return r.item.num !== num; });
+  var item = null;
+  for (var i = 0; i < VOCAB.length; i++) { if (VOCAB[i].num === num) { item = VOCAB[i]; break; } }
+  if (item) repeatQueue.push({ item: item, remaining: delay });
+}
+
+function markCorrect(num) {
+  var status = getWordStatus(num);
+  if      (status === 'new')     setWordStatus(num, 'known');
+  else if (status === 'unknown') { setWordStatus(num, 'repeat'); requeue(num, 25); }
+  else if (status === 'repeat')  setWordStatus(num, 'learned');
+  updateProgressBar();
+}
+
+function markWrong(num) {
+  var status = getWordStatus(num);
+  if (status !== 'known' && status !== 'learned') setWordStatus(num, 'unknown');
+  updateProgressBar();
+}
+
+function updateProgressBar() {
+  var all   = filterVocabAll();
+  var total = all.length;
+  if (total === 0) {
+    [segKnown, segLearned, segRepeat, segUnknown, segNew].forEach(function(s) { s.style.width = '0%'; });
+    return;
+  }
+  var cat = getCatProgress().cat;
+  var nKnown = 0, nLearned = 0, nRepeat = 0, nUnknown = 0;
+  all.forEach(function(w) {
+    var n = w.num;
+    if      (cat.known.indexOf(n)   >= 0) nKnown++;
+    else if (cat.learned.indexOf(n) >= 0) nLearned++;
+    else if (cat.repeat.indexOf(n)  >= 0) nRepeat++;
+    else if (cat.unknown.indexOf(n) >= 0) nUnknown++;
+  });
+  var nNew = total - nKnown - nLearned - nRepeat - nUnknown;
+  segKnown  .style.width = (nKnown   / total * 100).toFixed(1) + '%';
+  segLearned.style.width = (nLearned / total * 100).toFixed(1) + '%';
+  segRepeat .style.width = (nRepeat  / total * 100).toFixed(1) + '%';
+  segUnknown.style.width = (nUnknown / total * 100).toFixed(1) + '%';
+  segNew    .style.width = (nNew     / total * 100).toFixed(1) + '%';
+}
+
+// ── Deck building ────────────────────────────────────────────────────────
+
+function filterVocabAll() {
   return VOCAB.filter(function(w) {
     return w[currentLang] && w[currentLang].trim() !== '' && (!selectedCat || w.cat === selectedCat);
   });
 }
 
+function buildDeck() {
+  var all = filterVocabAll();
+  var cat = getCatProgress().cat;
+  var active  = all.filter(function(w) { return cat.known.indexOf(w.num) < 0 && cat.learned.indexOf(w.num) < 0; });
+  var repeatItems  = active.filter(function(w) { return cat.repeat.indexOf(w.num)  >= 0; });
+  var unknownItems = active.filter(function(w) { return cat.unknown.indexOf(w.num) >= 0; });
+  var rest         = active.filter(function(w) {
+    return cat.repeat.indexOf(w.num) < 0 && cat.unknown.indexOf(w.num) < 0;
+  });
+  return repeatItems.concat(unknownItems).concat(shuffle(rest));
+}
+
+function filterVocab() {
+  return buildDeck();
+}
+
 function rebuildDeck() {
-  var currentItem = deck[index] || null;
-  deck = shuffle(filterVocab());
-  var found = currentItem ? deck.indexOf(currentItem) : -1;
+  var currentNum = deck[index] ? deck[index].num : null;
+  deck = buildDeck();
+  var found = currentNum != null ? deck.findIndex(function(w) { return w.num === currentNum; }) : -1;
   if (found >= 0) { index = found; }
   else { index = 0; knopkyOptions = null; zmijaCurrentNum = null; }
+  updateProgressBar();
   showCurrent();
 }
 
@@ -945,7 +1071,6 @@ function showCard() {
     wordFront.innerHTML = '(no data)';
     wordIsv.innerHTML = '';
     stats.textContent = '';
-    progFill.style.width = Math.min(checkedCount / 50 * 100, 100).toFixed(1) + '%';
     return;
   }
   var item = deck[index];
@@ -958,8 +1083,7 @@ function showCard() {
   btnNo.disabled = true;
   void card.offsetWidth;
   card.style.transition = '';
-  stats.textContent    = '#' + item.num;
-  progFill.style.width = Math.min(checkedCount / 50 * 100, 100).toFixed(1) + '%';
+  stats.textContent = '#' + item.num;
   scheduleHint();
 }
 
@@ -1003,8 +1127,7 @@ function showKnopky() {
     optionsGrid.appendChild(btn);
   });
 
-  stats.textContent    = '#' + item.num;
-  progFill.style.width = Math.min(checkedCount / 50 * 100, 100).toFixed(1) + '%';
+  stats.textContent = '#' + item.num;
 }
 
 function handleOptionClick(clickedBtn, isCorrect) {
@@ -1016,18 +1139,21 @@ function handleOptionClick(clickedBtn, isCorrect) {
   var allBtns = optionsGrid.querySelectorAll('.option-btn');
   allBtns.forEach(function(b) { b.disabled = true; });
 
+  var num = deck[index].num;
   if (isCorrect) {
+    markCorrect(num);
     playCorrect();
     clickedBtn.classList.add('correct');
     knopkyNextAction = function() { nextCard(); };
   } else {
+    markWrong(num);
     playWrong();
     clickedBtn.classList.add('wrong');
     allBtns.forEach(function(b) {
       if (b.dataset.correct === 'true') b.classList.add('correct');
     });
     knopkyNextAction = function() {
-      repeatQueue.push({ item: deck[index], remaining: 5 });
+      requeue(num, 5);
       nextCard();
     };
   }
@@ -1096,8 +1222,7 @@ function showVpisyvanje() {
     vpisyvanjeAnswer.textContent = '';
     vpisyvanjeBtnCheck.textContent = 'Prověri \u2192';
     vpisyvanjeBtnCheck.style.cssText = '';
-    stats.textContent    = '#' + item.num;
-    progFill.style.width = Math.min(checkedCount / 50 * 100, 100).toFixed(1) + '%';
+    stats.textContent = '#' + item.num;
   }
   vpisyvanjeInput.focus();
 }
@@ -1123,6 +1248,7 @@ function checkVpisyvanje() {
   vpisyvanjeAnswered = true;
   vpisyvanjeInput.disabled = true;
   if (isCorrect) {
+    markCorrect(item.num);
     playCorrect();
     vpisyvanjeInput.style.visibility = 'hidden';
     var rawVariants = splitTopLevel(item.isv);
@@ -1138,6 +1264,7 @@ function checkVpisyvanje() {
     vpisyvanjeBtnCheck.style.boxShadow  = 'none';
     vpisyvanjeNextAction = function() { nextCard(); };
   } else {
+    markWrong(item.num);
     playWrong();
     vpisyvanjeInput.classList.add('wrong');
     vpisyvanjeBtnCheck.textContent = 'Ne znam \u2192';
@@ -1146,7 +1273,7 @@ function checkVpisyvanje() {
     vpisyvanjeBtnCheck.style.boxShadow  = 'none';
     vpisyvanjeAnswer.innerHTML = formatWord(item.isv);
     vpisyvanjeNextAction = function() {
-      repeatQueue.push({ item: deck[index], remaining: 5 });
+      requeue(item.num, 5);
       nextCard();
     };
   }
@@ -1267,8 +1394,7 @@ function showZmija() {
       if (zmijaGridData[r][c] === null)
         zmijaGridData[r][c] = ISV_ALPHA[Math.floor(Math.random() * ISV_ALPHA.length)];
 
-  stats.textContent    = '#' + item.num;
-  progFill.style.width = Math.min(checkedCount / 50 * 100, 100).toFixed(1) + '%';
+  stats.textContent = '#' + item.num;
 
   renderZmijaGrid();
 }
@@ -1391,8 +1517,6 @@ function handleZmijaClick(e) {
       playCorrect();
       zmijaAnswered = true;
       zmijaCompleted = true;
-      checkedCount++;
-      progFill.style.width = Math.min(checkedCount / 50 * 100, 100).toFixed(1) + '%';
       zmijaBtnSkip.textContent = 'Znam \u2192';
       zmijaBtnSkip.style.background = 'rgba(50,200,100,0.3)';
       zmijaBtnSkip.style.boxShadow  = 'none';
@@ -1405,20 +1529,28 @@ function handleZmijaClick(e) {
 
 zmijaBtnBack.addEventListener('click', prevCard);
 zmijaBtnSkip.addEventListener('click', function() {
-  if (zmijaNextAction) { var fn = zmijaNextAction; zmijaNextAction = null; fn(); return; }
+  if (zmijaNextAction) {
+    if (zmijaCompleted) markCorrect(deck[index].num);
+    var fn = zmijaNextAction; zmijaNextAction = null; fn(); return;
+  }
   if (!zmijaAnswered) {
+    var num = deck[index].num;
+    markWrong(num);
     zmijaAnswered = true;
     updateZmijaHighlights();
     zmijaBtnSkip.textContent = 'Ne znam \u2192';
     zmijaBtnSkip.style.background = 'rgba(220,80,80,0.25)';
     zmijaBtnSkip.style.color      = 'rgba(255,160,160,0.9)';
     zmijaBtnSkip.style.boxShadow  = 'none';
-    zmijaNextAction = function() { repeatQueue.push({ item: deck[index], remaining: 5 }); nextCard(); };
+    zmijaNextAction = function() { requeue(num, 5); nextCard(); };
   }
 });
 
 zmijaBtnNoAfter.addEventListener('click', function() {
-  repeatQueue.push({ item: deck[index], remaining: 5 });
+  var num = deck[index].num;
+  zmijaNextAction = null;
+  markWrong(num);
+  requeue(num, 5);
   nextCard();
 });
 
@@ -1434,9 +1566,8 @@ function flipCard() {
 
 function nextCard() {
   if (deck.length === 0) return;
-  checkedCount++;
   index = (index + 1) % deck.length;
-  if (index === 0) deck = shuffle(filterVocab());
+  if (index === 0) deck = buildDeck();
   // Decrement repeat countdowns and inject any due items right after current position
   var due = [];
   repeatQueue = repeatQueue.filter(function(r) {
@@ -1471,9 +1602,12 @@ function prevCard() {
 }
 
 card.addEventListener('click', flipCard);
-btnYes.addEventListener('click', nextCard);
+btnYes.addEventListener('click', function() {
+  if (deck.length > 0) markCorrect(deck[index].num);
+  nextCard();
+});
 btnNo.addEventListener('click', function() {
-  repeatQueue.push({ item: deck[index], remaining: 5 });
+  if (deck.length > 0) { var num = deck[index].num; markWrong(num); requeue(num, 5); }
   nextCard();
 });
 btnBack.addEventListener('click', prevCard);
@@ -1488,9 +1622,9 @@ document.addEventListener('keydown', function(e) {
   if (document.activeElement === vpisyvanjeInput) return;
   if (currentMode === 'vpisyvanje' && e.key === 'Enter') { e.preventDefault(); checkVpisyvanje(); return; }
   if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
-  if (e.key === 'ArrowRight' || e.key === 'y') nextCard();
+  if (e.key === 'ArrowRight' || e.key === 'y') { if (currentMode === 'karticky' && flipped && deck.length > 0) markCorrect(deck[index].num); nextCard(); }
   if (e.key === 'ArrowLeft'  || e.key === 'p') prevCard();
-  if (e.key === 'n') { if (!btnNo.disabled) { repeatQueue.push({ item: deck[index], remaining: 5 }); nextCard(); } }
+  if (e.key === 'n') { if (!btnNo.disabled && deck.length > 0) { var num = deck[index].num; markWrong(num); requeue(num, 5); nextCard(); } }
 });
 
 var savedLang = localStorage.getItem('karticky_lang') || 'en';

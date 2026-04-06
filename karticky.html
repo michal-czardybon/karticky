@@ -1746,6 +1746,7 @@ function nextCard() {
   knopkyAnswered = false;
   vpisyvanjeAnswered = false;
   zmijaCurrentNum = null; zmijaActiveVariant = -1;
+  if (deck.length === 0) { showCurrent(); return; }
   if (currentMode === 'knopky')      { flipThen(knopkyFlip,     showKnopky,     knopkyFlipDir); knopkyFlipDir = 1; return; }
   if (currentMode === 'vpisyvanje')  { flipThen(vpisyvanjeFlip, showVpisyvanje); return; }
   if (currentMode === 'zmija')       { flipThen(zmijaFlip,      showZmija);      return; }

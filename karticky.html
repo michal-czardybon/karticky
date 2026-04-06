@@ -1383,7 +1383,7 @@ function showVictory() {
   var nLearned = all.filter(function(w) { return cat.learned.indexOf(w.num) >= 0; }).length;
   victoryTitle.textContent = 'Diplom ukon\u010Denja:';
   victoryCat.textContent   = selectedCat ? catLabel(selectedCat) : 'Vse kategorije';
-  victorySub.textContent   = nKnown + ' znam, ' + nLearned + ' naučene';
+  victorySub.textContent   = nLearned + ' naučene, ' + nKnown + ' byl(a) jesi znal(a)';
   btnResetHard.disabled = nLearned === 0;
   victorySect.classList.remove('hidden');
   kartickySect.classList.add('hidden');

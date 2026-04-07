@@ -504,6 +504,80 @@
     .vpisyvanje-answer sup { font-size: 0.6em; vertical-align: super; }
     .vpisyvanje-answer u { text-decoration-thickness: 2px; text-underline-offset: 3px; }
 
+    /* Razsypanje section */
+    .razsypanje-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: min(420px, 100%);
+      perspective: 1000px;
+    }
+    .razsypanje-flip {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .razsypanje-display {
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 12px;
+      border: 2px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-family: inherit;
+      font-size: max(1.1rem, 16px);
+      font-weight: 600;
+      text-align: center;
+      box-sizing: border-box;
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: border-color 0.2s, background 0.2s, color 0.2s;
+    }
+    .razsypanje-display.wrong {
+      border-color: #dc3c3c;
+      background: rgba(220,60,60,0.12);
+      color: rgba(255,120,120,0.9);
+    }
+    .razsypanje-display:empty::before {
+      content: '|';
+      opacity: 0.35;
+      animation: rasz-blink 1s step-end infinite;
+    }
+    @keyframes rasz-blink { 0%,100%{opacity:0.35} 50%{opacity:0} }
+    .razsypanje-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 6px;
+      width: 100%;
+    }
+    .razsypanje-letter {
+      aspect-ratio: 1;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-family: inherit;
+      font-size: clamp(0.9rem, 3.5vw, 1.1rem);
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: background 0.1s, transform 0.08s;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    .razsypanje-letter:active:not(:disabled) { transform: scale(0.88); }
+    .razsypanje-letter.backspace { background: rgba(220,80,80,0.4); color: rgba(255,160,160,0.9); }
+    .razsypanje-letter:disabled { opacity: 0.3; cursor: default; }
+
     /* Zmija section */
     .zmija-section {
       display: flex;
@@ -657,6 +731,7 @@
     <button class="mode-menu-item"        data-mode="knopky">Knopky</button>
     <button class="mode-menu-item"        data-mode="vpisyvanje">Vpisyvanje</button>
     <button class="mode-menu-item"        data-mode="zmija">Zmija</button>
+    <button class="mode-menu-item"        data-mode="razsypanje">Razsypanje</button>
   </div>
 </div>
 
@@ -750,6 +825,27 @@
       <button class="btn-back" id="zmijaBtnBack">&#x2190; Vrati</button>
       <button class="btn-no"   id="zmijaBtnNoAfter" style="display:none">Ne znam &#x2192;</button>
       <button class="btn-yes"  id="zmijaBtnSkip">Ne znam &#x2192;</button>
+    </div>
+  </div>
+</div>
+
+<div class="game-section hidden razsypanje-section" id="razsypanjeSect">
+  <div class="razsypanje-flip" id="razsypanjeFlip">
+    <div class="knopky-word" id="razsypanjeWord">
+      <span class="label" id="razsypanjeLabel"></span>
+      <div class="knopky-main" id="razsypanjeWordMain"></div>
+      <div class="knopky-sub"  id="razsypanjeWordSub"></div>
+      <span class="card-num"></span>
+    </div>
+    <div class="vpisyvanje-input-wrap">
+      <div class="razsypanje-display" id="razsypanjeDisplay"></div>
+      <div class="vpisyvanje-correct-overlay" id="razsypanjeCorrectOverlay"></div>
+    </div>
+    <div class="vpisyvanje-answer" id="razsypanjeAnswer"></div>
+    <div class="razsypanje-grid" id="razsypanjeGrid"></div>
+    <div class="controls">
+      <button class="btn-back" id="razsypanjeBtnBack">&#x2190; Vrati</button>
+      <button class="btn-yes"  id="razsypanjeBtnCheck">Prověri &#x2192;</button>
     </div>
   </div>
 </div>
@@ -932,6 +1028,23 @@ var zmijaBtnBack      = document.getElementById('zmijaBtnBack');
 var zmijaBtnSkip      = document.getElementById('zmijaBtnSkip');
 var zmijaBtnNoAfter   = document.getElementById('zmijaBtnNoAfter');
 
+var razsypanjeSect     = document.getElementById('razsypanjeSect');
+var razsypanjeFlip     = document.getElementById('razsypanjeFlip');
+var razsypanjeLabel    = document.getElementById('razsypanjeLabel');
+var razsypanjeWordMain = document.getElementById('razsypanjeWordMain');
+var razsypanjeWordSub  = document.getElementById('razsypanjeWordSub');
+var razsypanjeDisplay  = document.getElementById('razsypanjeDisplay');
+var razsypanjeCorrectOverlay = document.getElementById('razsypanjeCorrectOverlay');
+var razsypanjeAnswer   = document.getElementById('razsypanjeAnswer');
+var razsypanjeGridEl   = document.getElementById('razsypanjeGrid');
+var razsypanjeBtnBack  = document.getElementById('razsypanjeBtnBack');
+var razsypanjeBtnCheck = document.getElementById('razsypanjeBtnCheck');
+
+var razsypanjeAnswered    = false;
+var razsypanjeNextAction  = null;
+var razsypanjeCurrentNum  = null;
+var razsypanjeTyped       = '';
+
 var victorySect  = document.getElementById('victorySect');
 var victoryTitle = document.getElementById('victoryTitle');
 var victoryCat   = document.getElementById('victoryCat');
@@ -1082,15 +1195,16 @@ document.querySelectorAll('.mode-menu-item').forEach(function(btn) {
 function switchMode(mode) {
   currentMode = mode;
   localStorage.setItem('karticky_mode', mode);
-  var labels = { karticky: 'Karti\u010Dky', knopky: 'Knopky', vpisyvanje: 'Vpisyvanje', zmija: 'Zmija' };
+  var labels = { karticky: 'Karti\u010Dky', knopky: 'Knopky', vpisyvanje: 'Vpisyvanje', zmija: 'Zmija', razsypanje: 'Razsypanje' };
   modeToggle.textContent = (labels[mode] || mode) + ' \u25BE';
   document.querySelectorAll('.mode-menu-item').forEach(function(b) {
     b.classList.toggle('active', b.dataset.mode === mode);
   });
-  kartickySect.classList.toggle('hidden',    mode !== 'karticky');
-  knopkySect.classList.toggle('hidden',      mode !== 'knopky');
-  vpisyvanjeSect.classList.toggle('hidden',  mode !== 'vpisyvanje');
-  zmijaSect.classList.toggle('hidden',       mode !== 'zmija');
+  kartickySect.classList.toggle('hidden',     mode !== 'karticky');
+  knopkySect.classList.toggle('hidden',       mode !== 'knopky');
+  vpisyvanjeSect.classList.toggle('hidden',   mode !== 'vpisyvanje');
+  zmijaSect.classList.toggle('hidden',        mode !== 'zmija');
+  razsypanjeSect.classList.toggle('hidden',   mode !== 'razsypanje');
   showCurrent();
 }
 
@@ -1265,6 +1379,9 @@ function rebuildDeck() {
   knopkyNextAction = null;
   vpisyvanjeAnswered = false;
   vpisyvanjeNextAction = null;
+  razsypanjeAnswered = false;
+  razsypanjeNextAction = null;
+  razsypanjeCurrentNum = null;
   hideExample();
   updateProgressBar();
   showCurrent();
@@ -1514,6 +1631,131 @@ function checkVpisyvanje() {
   showExample(item.num);
 }
 
+function razsypanjeLetters(item) {
+  var raw = (item[destLang] || '')
+    .replace(/<sup>[^<]*<\/sup>/gi, '').replace(/<[^>]*>/g, '')
+    .replace(/\s+\([^)]*\)/g, '');
+  var charSet = {};
+  raw.split(/,|\?\s+/).forEach(function(v) {
+    expandOptionalParens(v.trim()).forEach(function(exp) {
+      exp.split('').forEach(function(c) {
+        c = c.toLowerCase();
+        if (/[a-z\u00c0-\u024f ]/.test(c)) charSet[c] = true;
+      });
+    });
+  });
+  var letters = Object.keys(charSet).sort();
+  // Pad so total (letters + backspace) is divisible by 8
+  var needed = (8 - ((letters.length + 1) % 8)) % 8;
+  var da = DEST_ALPHA_MAP[destLang] || ISV_ALPHA;
+  var extras = shuffle(da.filter(function(c) { return !charSet[c]; }));
+  for (var i = 0; i < needed && i < extras.length; i++) letters.push(extras[i]);
+  // In case alphabet was too small, pad with repeats of first char
+  while ((letters.length + 1) % 8 !== 0) letters.push(da[0]);
+  letters = shuffle(letters);
+  letters.push('\u232B');  // ⌫ always last
+  return letters;
+}
+
+function showRazsypanje() {
+  if (deck.length === 0) return;
+  var item = deck[index];
+  razsypanjeLabel.textContent = catLabel(item.cat);
+  var langWord = item[currentLang] || '';
+  var parenIdx = langWord.indexOf('(');
+  if (parenIdx <= 0) {
+    razsypanjeWordMain.innerHTML = langWord;
+    razsypanjeWordSub.innerHTML  = '';
+  } else {
+    razsypanjeWordMain.innerHTML = langWord.substring(0, parenIdx).trim();
+    razsypanjeWordSub.innerHTML  = expandAbbreviations(langWord.substring(parenIdx));
+  }
+  if (razsypanjeAnswered) return;
+  var isNewWord = (item.num !== razsypanjeCurrentNum);
+  razsypanjeCurrentNum = item.num;
+  if (isNewWord) {
+    razsypanjeTyped = '';
+    razsypanjeDisplay.textContent = '';
+    razsypanjeDisplay.className = 'razsypanje-display';
+    razsypanjeDisplay.style.visibility = '';
+    razsypanjeCorrectOverlay.innerHTML = '';
+    razsypanjeCorrectOverlay.classList.remove('visible');
+    razsypanjeAnswer.textContent = '';
+    razsypanjeBtnCheck.textContent = 'Prověri \u2192';
+    razsypanjeBtnCheck.style.cssText = '';
+    setCardNum(item.num);
+    var letters = razsypanjeLetters(item);
+    razsypanjeGridEl.innerHTML = '';
+    letters.forEach(function(letter) {
+      var btn = document.createElement('button');
+      btn.className = 'razsypanje-letter' + (letter === '\u232B' ? ' backspace' : '');
+      btn.textContent = letter;
+      btn.addEventListener('click', function() { onRazsypanjeLetter(letter); });
+      razsypanjeGridEl.appendChild(btn);
+    });
+  }
+}
+
+function onRazsypanjeLetter(letter) {
+  if (razsypanjeAnswered) return;
+  if (letter === '\u232B') {
+    if (razsypanjeTyped.length > 0)
+      razsypanjeTyped = razsypanjeTyped.slice(0, -1);
+  } else {
+    razsypanjeTyped += letter;
+  }
+  razsypanjeDisplay.textContent = razsypanjeTyped;
+}
+
+function checkRazsypanje() {
+  if (razsypanjeAnswered) {
+    if (razsypanjeNextAction) { var fn = razsypanjeNextAction; razsypanjeNextAction = null; fn(); }
+    return;
+  }
+  var item = deck[index];
+  var isvClean = (item[destLang] || '')
+    .replace(/<sup>[^<]*<\/sup>/gi, '').replace(/<[^>]*>/g, '')
+    .replace(/\s+\([^)]*\)/g, '');
+  var userNorm = normalize(razsypanjeTyped);
+  var matchedIdx = -1;
+  isvClean.split(/,|\?\s+/).some(function(v, i) {
+    if (expandOptionalParens(v.trim()).some(function(exp) { return normalize(exp) === userNorm; })) {
+      matchedIdx = i; return true;
+    }
+  });
+  var isCorrect = matchedIdx >= 0;
+  razsypanjeAnswered = true;
+  razsypanjeGridEl.querySelectorAll('.razsypanje-letter').forEach(function(b) { b.disabled = true; });
+  if (isCorrect) {
+    markCorrect(item.num);
+    playCorrect();
+    razsypanjeDisplay.style.visibility = 'hidden';
+    var rawVariants = splitTopLevel(item[destLang]);
+    razsypanjeCorrectOverlay.innerHTML = '<span>' + rawVariants.map(function(v, i) {
+      var t = v.trim();
+      if (i !== matchedIdx) return t;
+      var sp = t.indexOf(' (');
+      return sp >= 0 ? '<b>' + t.substring(0, sp) + '</b>' + t.substring(sp) : '<b>' + t + '</b>';
+    }).join(', ') + '</span>';
+    razsypanjeCorrectOverlay.classList.add('visible');
+    razsypanjeBtnCheck.textContent = 'Znam \u2192';
+    razsypanjeBtnCheck.style.background = 'rgba(50,200,100,0.3)';
+    razsypanjeBtnCheck.style.boxShadow  = 'none';
+    razsypanjeNextAction = function() { nextCard(); };
+  } else {
+    markWrong(item.num);
+    playWrong();
+    razsypanjeDisplay.classList.add('wrong');
+    razsypanjeBtnCheck.textContent = 'Ne znam \u2192';
+    razsypanjeBtnCheck.style.background = 'rgba(220,80,80,0.25)';
+    razsypanjeBtnCheck.style.color      = 'rgba(255,160,160,0.9)';
+    razsypanjeBtnCheck.style.boxShadow  = 'none';
+    razsypanjeAnswer.innerHTML = formatWord(item[destLang]);
+    razsypanjeNextAction = function() { requeue(item.num, 5); nextCard(); };
+  }
+  showExample(item.num);
+}
+
 function showVictory() {
   var cat = getCatProgress().cat;
   var all = filterVocabAll();
@@ -1528,14 +1770,16 @@ function showVictory() {
   knopkySect.classList.add('hidden');
   vpisyvanjeSect.classList.add('hidden');
   zmijaSect.classList.add('hidden');
+  razsypanjeSect.classList.add('hidden');
 }
 
 function hideVictory() {
   victorySect.classList.add('hidden');
-  kartickySect.classList.toggle('hidden', currentMode !== 'karticky');
-  knopkySect.classList.toggle('hidden',   currentMode !== 'knopky');
+  kartickySect.classList.toggle('hidden',   currentMode !== 'karticky');
+  knopkySect.classList.toggle('hidden',     currentMode !== 'knopky');
   vpisyvanjeSect.classList.toggle('hidden', currentMode !== 'vpisyvanje');
-  zmijaSect.classList.toggle('hidden',    currentMode !== 'zmija');
+  zmijaSect.classList.toggle('hidden',      currentMode !== 'zmija');
+  razsypanjeSect.classList.toggle('hidden', currentMode !== 'razsypanje');
 }
 
 function resetAllProgress() {
@@ -1558,10 +1802,11 @@ function resetLearnedProgress() {
 function showCurrent() {
   if (deck.length === 0) { showVictory(); return; }
   hideVictory();
-  if (currentMode === 'karticky')        showCard();
-  else if (currentMode === 'knopky')     showKnopky();
-  else if (currentMode === 'zmija')      showZmija();
-  else                                   showVpisyvanje();
+  if (currentMode === 'karticky')          showCard();
+  else if (currentMode === 'knopky')       showKnopky();
+  else if (currentMode === 'zmija')        showZmija();
+  else if (currentMode === 'razsypanje')   showRazsypanje();
+  else                                     showVpisyvanje();
 }
 
 // --- Zmija mode ---
@@ -1895,12 +2140,14 @@ function nextCard() {
   knopkyOptions = null;
   knopkyAnswered = false;
   vpisyvanjeAnswered = false;
+  razsypanjeAnswered = false;
   zmijaCurrentNum = null; zmijaActiveVariant = -1;
   hideExample();
   if (deck.length === 0) { showCurrent(); return; }
   if (currentMode === 'knopky')      { flipThen(knopkyFlip,     showKnopky,     knopkyFlipDir); knopkyFlipDir = 1; return; }
   if (currentMode === 'vpisyvanje')  { flipThen(vpisyvanjeFlip, showVpisyvanje); return; }
   if (currentMode === 'zmija')       { flipThen(zmijaFlip,      showZmija);      return; }
+  if (currentMode === 'razsypanje')  { flipThen(razsypanjeFlip, showRazsypanje); return; }
   showCard();
 }
 
@@ -1910,11 +2157,13 @@ function prevCard() {
   knopkyOptions = null;
   knopkyAnswered = false;
   vpisyvanjeAnswered = false;
+  razsypanjeAnswered = false;
   zmijaCurrentNum = null; zmijaActiveVariant = -1;
   hideExample();
   if (currentMode === 'knopky')      { flipThen(knopkyFlip,     showKnopky);     return; }
   if (currentMode === 'vpisyvanje')  { flipThen(vpisyvanjeFlip, showVpisyvanje); return; }
   if (currentMode === 'zmija')       { flipThen(zmijaFlip,      showZmija);      return; }
+  if (currentMode === 'razsypanje')  { flipThen(razsypanjeFlip, showRazsypanje); return; }
   showCard();
 }
 
@@ -1937,9 +2186,13 @@ vpisyvanjeInput.addEventListener('keydown', function(e) {
   if (e.key === 'Enter') { e.preventDefault(); checkVpisyvanje(); }
 });
 
+razsypanjeBtnBack.addEventListener('click', prevCard);
+razsypanjeBtnCheck.addEventListener('click', checkRazsypanje);
+
 document.addEventListener('keydown', function(e) {
   if (document.activeElement === vpisyvanjeInput) return;
   if (currentMode === 'vpisyvanje' && e.key === 'Enter') { e.preventDefault(); checkVpisyvanje(); return; }
+  if (currentMode === 'razsypanje' && e.key === 'Enter') { e.preventDefault(); checkRazsypanje(); return; }
   if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
   if (e.key === 'ArrowRight' || e.key === 'y') { if (currentMode === 'karticky' && flipped && deck.length > 0) markCorrect(deck[index].num); nextCard(); }
   if (e.key === 'ArrowLeft'  || e.key === 'p') prevCard();

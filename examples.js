@@ -569,7 +569,7 @@ const EXAMPLES = {
   "574": "Kava s soboju, prosim.",
   "575": "Rěci mi pravdu.",
   "576": "Ne govori lži.",
-  "577": "Dostatočno, že odgovoriš sobě na jedno važne pytanje: Čto ljubju v žitju dělati?"
+  "577": "Dostatočno, že odgovoriš sobě na jedno važne pytanje: Čto ljubju v žitju dělati?",
   "578": "Ona ne dala mi odpověd.",
   "579": "Imamo veliky problem s projektom.",
   "580": "Nahodimo rěšenje zajedno.",

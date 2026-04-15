@@ -57,7 +57,7 @@ const EXAMPLES = {
   "73": "Koliko to koštuje?",
   "74": "Ktory avtobus ide do centra?",
   "75": "Ktora kniga jest najlěpša?",
-  "76": "Težko jest nadti dobru njanju dlja děteta… Ale ješče težje jest nadti dobro děte. -- Andrzej Mleczko" 
+  "76": "Težko jest nadti dobru njanju dlja děteta… Ale ješče težje jest nadti dobro děte. -- Andrzej Mleczko",
   "77": "Odkud ty jesi prijehal?",
   "78": "Dokud ty ideš?",
   "79": "Kudy musimo jehati že by ne platiti za avtostradu?",
@@ -381,7 +381,7 @@ const EXAMPLES = {
   "387": "On doprva několiko minut nazad skončil je rabotu.",
   "388": "Ona doprva v domu srazuměla tamtu směšku.",
   
-  "389": "Jademo snědanje zajedno vsako jutro.",
+  "389": "Jademo snědanje zajedno vsakodenno.",
   "390": "Oběd bude gotovy za pol časiny.",
   "391": "Na večerju imamo rybu.",
   "392": "Mně nravi se svěže ovoče.",

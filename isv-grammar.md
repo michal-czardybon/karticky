@@ -500,8 +500,7 @@ Vowel-stem: -h, -še, -še, -hmo, -ste, -hu
 Consonant-stem: -eh, -eše, -eše, -ehmo, -este, -ehu
 
 ### Future Tense
-**Imperfective**: *budu / budeš / bude / budemo / budete / budut* + infinitive  
-**Perfective**: use the present tense forms (they carry future meaning for perfective verbs)
+Both aspects: *budu / budeš / bude / budemo / budete / budut* + infinitive
 
 | | future of *dělati* |
 |--|-------------------|

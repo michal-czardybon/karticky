@@ -770,7 +770,7 @@
   </div>
   <div class="controls">
     <button class="btn-back" id="btnBack">&#x2190; Vrati</button>
-    <button class="btn-no"   id="btnNo"   disabled>Ne znam &#x2192;</button>
+    <button class="btn-no"   id="btnNo"   disabled>Ne znam &#x2193;</button>
     <button class="btn-yes"  id="btnYes">Znam &#x2192;</button>
   </div>
 </div>
@@ -786,7 +786,7 @@
     <div class="options-grid" id="optionsGrid"></div>
     <div class="controls">
       <button class="btn-back" id="knopkyBtnBack">&#x2190; Vrati</button>
-      <button class="btn-no"   id="knopkyBtnNo">Ne znam &#x2192;</button>
+      <button class="btn-no"   id="knopkyBtnNo">Ne znam &#x2193;</button>
       <button class="btn-yes"  id="knopkyBtnYes" disabled>Znam &#x2192;</button>
     </div>
   </div>
@@ -807,7 +807,7 @@
     <div class="vpisyvanje-answer" id="vpisyvanjeAnswer"></div>
     <div class="controls">
       <button class="btn-back" id="vpisyvanjeBtnBack">&#x2190; Vrati</button>
-      <button class="btn-yes"  id="vpisyvanjeBtnCheck">Prověri &#x2192;</button>
+      <button class="btn-yes"  id="vpisyvanjeBtnCheck">Prověri</button>
     </div>
   </div>
 </div>
@@ -1571,7 +1571,7 @@ function showVpisyvanje() {
     vpisyvanjeCorrectOverlay.textContent = '';
     vpisyvanjeCorrectOverlay.classList.remove('visible');
     vpisyvanjeAnswer.textContent = '';
-    vpisyvanjeBtnCheck.textContent = 'Prověri \u2192';
+    vpisyvanjeBtnCheck.textContent = 'Prověri';
     vpisyvanjeBtnCheck.style.cssText = '';
     setCardNum(item.num);
   }
@@ -2194,8 +2194,17 @@ document.addEventListener('keydown', function(e) {
   if (currentMode === 'vpisyvanje' && e.key === 'Enter') { e.preventDefault(); checkVpisyvanje(); return; }
   if (currentMode === 'razsypanje' && e.key === 'Enter') { e.preventDefault(); checkRazsypanje(); return; }
   if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
-  if (e.key === 'ArrowRight' || e.key === 'y') { if (currentMode === 'karticky' && flipped && deck.length > 0) markCorrect(deck[index].num); nextCard(); }
-  if (e.key === 'ArrowLeft'  || e.key === 'p') prevCard();
+  if (e.key === 'ArrowRight' || e.key === 'y') {
+    if (currentMode === 'karticky') { if (flipped && deck.length > 0) markCorrect(deck[index].num); nextCard(); }
+    else if (currentMode === 'knopky') { if (!knopkyBtnYes.disabled) knopkyBtnYes.click(); }
+  }
+  if (e.key === 'ArrowLeft' || e.key === 'p') {
+    if (currentMode === 'karticky' || currentMode === 'knopky') prevCard();
+  }
+  if (e.key === 'ArrowDown') {
+    if (currentMode === 'karticky') { if (!btnNo.disabled && deck.length > 0) { var num = deck[index].num; markWrong(num); requeue(num, 5); nextCard(); } }
+    else if (currentMode === 'knopky') { if (!knopkyBtnNo.disabled) knopkyBtnNo.click(); }
+  }
   if (e.key === 'n') { if (!btnNo.disabled && deck.length > 0) { var num = deck[index].num; markWrong(num); requeue(num, 5); nextCard(); } }
 });
 

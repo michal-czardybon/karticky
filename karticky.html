@@ -2195,14 +2195,14 @@ document.addEventListener('keydown', function(e) {
   if (currentMode === 'razsypanje' && e.key === 'Enter') { e.preventDefault(); checkRazsypanje(); return; }
   if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
   if (e.key === 'ArrowRight' || e.key === 'y') {
-    if (currentMode === 'karticky') { if (flipped && deck.length > 0) markCorrect(deck[index].num); nextCard(); }
+    if (currentMode === 'karticky') { btnYes.click(); }
     else if (currentMode === 'knopky') { if (!knopkyBtnYes.disabled) knopkyBtnYes.click(); }
   }
   if (e.key === 'ArrowLeft' || e.key === 'p') {
     if (currentMode === 'karticky' || currentMode === 'knopky') prevCard();
   }
   if (e.key === 'ArrowDown') {
-    if (currentMode === 'karticky') { if (!btnNo.disabled && deck.length > 0) { var num = deck[index].num; markWrong(num); requeue(num, 5); nextCard(); } }
+    if (currentMode === 'karticky') { if (!btnNo.disabled) btnNo.click(); }
     else if (currentMode === 'knopky') { if (!knopkyBtnNo.disabled) knopkyBtnNo.click(); }
   }
   if (e.key === 'n') { if (!btnNo.disabled && deck.length > 0) { var num = deck[index].num; markWrong(num); requeue(num, 5); nextCard(); } }

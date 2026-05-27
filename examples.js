@@ -454,7 +454,7 @@ const EXAMPLES = {
   "457": "Včera jesm upadl podčas ježdženja na snowboardu. Dnes silno boli me zadnica.",
   "458": "Kleči na kolenah i umoljaj o žalost.",
   
-  "459": "Na pesoku byly vidime slědy stop.",
+  "459": "Na pesoku byli vidime slědy stop.",
   "460": "Lěkar pogledal na rentgenovy snimok i rěkl, že kost jest slomjena.",
   "461": "Krov iztěkala iz rany.",
   "462": "Vena jest vidna na rukě.",
@@ -495,7 +495,7 @@ const EXAMPLES = {
   "496": "On jezdi na roljkah v parku.",
   "497": "Pedri podaje do Lewandowskiego i... krugla v golu!",
   "498": "Vitez nosi meč i ščit.",
-  "499": "Ščity rimskyh legionarov v formacji prilegaly jedne k drugym.",
+  "499": "Ščity rimskyh legionarov v formacji prilegali jedne k drugym.",
   "500": "Do krčmy s oružjem vstup zabranjeny.",
   "501": "On podaroval jej krasny prstenj.",
   "502": "Ona nosi zlaty nagrdelnik.",

@@ -619,7 +619,7 @@ const EXAMPLES = {
   "616": "Laserovy měrač pokazuje dolž s velikoju točnostju.",
   "617": "Dověrje jest osnova každogo dobrogo svezka.",
   "618": "Na početku bylo Slovo, a Slovo bylo u Boga... -- početok Evangelje podolg sv. Jana",
-  "619": "Dlja njih se rabotaje do konca, a či konec bude dobry, to uže druga historija. -- Nelegalny bagaž"
+  "619": "Dlja njih se rabotaje do konca, a či konec bude dobry, to uže druga historija. -- Nelegalny bagaž",
   "620": "Nedostatok danyh o dolgotrajnyh poslědstvah priměnjanja togo lěka.",
   "621": "Ona ima alergiju na pylok.",
   "622": "Zdravje jest najvažnějše.",

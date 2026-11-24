@@ -754,30 +754,34 @@
 
     /* Compact layout for phones (portrait): everything fits one screen */
     @media (max-width: 600px) {
-      body { padding: 10px; gap: 8px; }
-      .app-main { gap: 10px; }
+      body { padding: 12px; gap: 10px; }
+      .app-main { gap: 12px; }
       header { display: none; }
-      .lang-selector { gap: 5px; }
-      .lang-btn { padding: 5px 6px; border-radius: 10px; }
+      .lang-selector {
+        display: grid;
+        grid-template-columns: repeat(5, auto);
+        justify-content: center;
+        gap: 6px 8px;
+      }
+      .lang-btn { padding: 5px 9px; border-radius: 10px; justify-content: center; }
       .lang-btn span.code { display: none; }
-      .lang-btn img.flag { width: 26px; height: 17px; }
-      .scene { height: 200px; }
-      .card-face { padding: 20px; }
-      .controls { gap: 10px; }
-      button.btn-back, button.btn-no, button.btn-yes { padding: 10px 16px; }
-      .knopky-flip, .zmija-flip { gap: 10px; }
-      .razsypanje-flip { gap: 8px; }
-      .knopky-word { height: 100px; padding: 6px 16px; }
+      .scene { height: 210px; }
+      .card-face { padding: 24px; }
+      .controls { gap: 12px; }
+      .knopky-flip, .zmija-flip { gap: 12px; }
+      .knopky-word { height: 112px; padding: 6px 20px; }
       .options-grid { gap: 8px; }
-      .option-btn { height: 58px; }
-      .razsypanje-display, .vpisyvanje-input { padding: 10px 14px; min-height: 44px; }
-      .example-sentence { font-size: 0.78rem; line-height: 1.4; min-height: 2.8em; }
-      .topbar { gap: 6px; }
+      .option-btn { height: 64px; }
+      .razsypanje-display, .vpisyvanje-input { min-height: 48px; }
+      .example-sentence { font-size: 0.8rem; line-height: 1.4; min-height: 3em; }
     }
-    @media (max-width: 600px) and (max-height: 720px) {
-      .scene { height: 170px; }
-      .knopky-word { height: 84px; }
-      .option-btn { height: 50px; }
+    @media (max-width: 600px) and (max-height: 620px) {
+      body { padding: 8px; gap: 8px; }
+      .app-main { gap: 8px; }
+      .scene { height: 180px; }
+      .knopky-word { height: 92px; }
+      .option-btn { height: 54px; }
+      .example-sentence { min-height: 2.8em; }
     }
   </style>
 </head>

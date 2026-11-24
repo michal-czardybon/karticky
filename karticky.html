@@ -751,6 +751,34 @@
     .example-sentence.hidden { opacity: 0; pointer-events: none; }
     .example-main { text-align: center; }
     .example-attr { text-align: right; opacity: 0.7; font-size: 0.8em; }
+
+    /* Compact layout for phones (portrait): everything fits one screen */
+    @media (max-width: 600px) {
+      body { padding: 10px; gap: 8px; }
+      .app-main { gap: 10px; }
+      header { display: none; }
+      .lang-selector { gap: 5px; }
+      .lang-btn { padding: 5px 6px; border-radius: 10px; }
+      .lang-btn span.code { display: none; }
+      .lang-btn img.flag { width: 26px; height: 17px; }
+      .scene { height: 200px; }
+      .card-face { padding: 20px; }
+      .controls { gap: 10px; }
+      button.btn-back, button.btn-no, button.btn-yes { padding: 10px 16px; }
+      .knopky-flip, .zmija-flip { gap: 10px; }
+      .razsypanje-flip { gap: 8px; }
+      .knopky-word { height: 100px; padding: 6px 16px; }
+      .options-grid { gap: 8px; }
+      .option-btn { height: 58px; }
+      .razsypanje-display, .vpisyvanje-input { padding: 10px 14px; min-height: 44px; }
+      .example-sentence { font-size: 0.78rem; line-height: 1.4; min-height: 2.8em; }
+      .topbar { gap: 6px; }
+    }
+    @media (max-width: 600px) and (max-height: 720px) {
+      .scene { height: 170px; }
+      .knopky-word { height: 84px; }
+      .option-btn { height: 50px; }
+    }
   </style>
 </head>
 <body>

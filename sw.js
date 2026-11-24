@@ -1,4 +1,4 @@
-const CACHE = 'karticky-v2';
+const CACHE = 'karticky-v3';
 const ASSETS = [
   './karticky.html',
   './vocab.js',

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.svg">
-  <title>Med&#x17E;uslovjanske karti&#x010D;ky</title>
+  <title>Karti&#x010D;ky</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -22,7 +22,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       background: var(--bg);
       font-family: 'Segoe UI', system-ui, sans-serif;
       padding: 24px;
@@ -30,6 +30,15 @@
     }
 
     header { text-align: center; }
+    .app-main {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+    }
     header h1 {
       color: #fff;
       font-size: 1.3rem;
@@ -237,19 +246,44 @@
     .knopky-word .card-num { color: #1a1a2e; }
 
     /* Mode dropdown */
-    .mode-dropdown {
-      position: fixed;
-      top: 14px;
-      left: 14px;
+    .topbar {
+      position: relative;
+      width: min(640px, 100%);
+      display: flex;
+      gap: 8px;
       z-index: 100;
     }
-    .cat-dropdown {
-      position: fixed;
-      top: 14px;
-      right: 14px;
-      z-index: 100;
+    .topbar > * { position: relative; flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .dd-label {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .mode-toggle-btn, .cat-toggle-btn {
+    .mode-toggle-btn, .cat-toggle-btn, .dst-toggle-btn {
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: left;
+    }
+    .dst-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #16213e;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      overflow: hidden;
+      min-width: 150px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    .dst-menu.hidden { display: none; }
+    .mode-toggle-btn, .cat-toggle-btn, .dst-toggle-btn {
       border: 1px solid rgba(255,255,255,0.2);
       border-radius: 8px;
       padding: 6px 12px;
@@ -262,7 +296,7 @@
       white-space: nowrap;
       transition: background 0.15s;
     }
-    .mode-toggle-btn:hover, .cat-toggle-btn:hover { background: rgba(255,255,255,0.14); }
+    .mode-toggle-btn:hover, .cat-toggle-btn:hover, .dst-toggle-btn:hover { background: rgba(255,255,255,0.14); }
     .mode-menu {
       position: absolute;
       top: calc(100% + 6px);
@@ -303,7 +337,7 @@
     .cat-menu-item:hover { background: rgba(255,255,255,0.07); }
     .cat-menu-item.active { color: var(--accent); font-weight: 600; }
     .cat-menu-separator { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 2px 0; }
-    .mode-menu-item {
+    .mode-menu-item, .dst-menu-item {
       display: block;
       width: 100%;
       border: none;
@@ -317,8 +351,8 @@
       text-align: left;
       transition: background 0.12s;
     }
-    .mode-menu-item:hover { background: rgba(255,255,255,0.08); }
-    .mode-menu-item.active { color: var(--accent); }
+    .mode-menu-item:hover, .dst-menu-item:hover { background: rgba(255,255,255,0.08); }
+    .mode-menu-item.active, .dst-menu-item.active { color: var(--accent); }
 
     /* Section visibility */
     .game-section { display: contents; }
@@ -721,11 +755,9 @@
 </head>
 <body>
 
-<header>
-  <h1>Med&#x17E;uslovjanske karti&#x010D;ky</h1>
-</header>
-
+<div class="topbar">
 <div class="mode-dropdown" id="modeDropdown">
+  <span class="dd-label" id="lblMode"></span>
   <button class="mode-toggle-btn" id="modeToggle">Karti&#x010D;ky &#x25BE;</button>
   <div class="mode-menu hidden" id="modeMenu">
     <button class="mode-menu-item active" data-mode="karticky">Karti&#x010D;ky</button>
@@ -736,12 +768,25 @@
   </div>
 </div>
 
+<div class="dst-dropdown" id="dstDropdown">
+  <span class="dd-label" id="lblDst"></span>
+  <button class="dst-toggle-btn" id="dstToggle"></button>
+  <div class="dst-menu hidden" id="dstMenu"></div>
+</div>
+
 <div class="cat-dropdown" id="catDropdown">
+  <span class="dd-label" id="lblCat"></span>
   <button class="cat-toggle-btn" id="catToggle">&#x25BE;</button>
   <div class="cat-menu hidden" id="catMenu">
     <div id="catList"></div>
   </div>
 </div>
+</div>
+
+<main class="app-main">
+<header>
+  <h1 id="appTitle">Karti&#x010D;ky</h1>
+</header>
 
 <div class="lang-selector" id="langSelector"></div>
 
@@ -866,6 +911,7 @@
 
 <div class="example-sentence hidden" id="exampleSentence"></div>
 <div class="stats" id="stats"></div>
+</main>
 
 <script src="vocab.js"></script>
 <script src="categories.js"></script>
@@ -947,6 +993,7 @@ var currentLang = 'en';
 var VALID_DEST = { pl:1, cz:1, sk:1, cr:1, en:1, de:1, es:1, it:1, sv:1, isv:1 };
 var destLang = (function() {
   var p = new URLSearchParams(window.location.search).get('dst');
+  if (!p) { try { p = localStorage.getItem('karticky_dst'); } catch(e) {} }
   return (p && VALID_DEST[p.toLowerCase()]) ? p.toLowerCase() : 'isv';
 })();
 
@@ -981,6 +1028,46 @@ var DEST_ALPHA_MAP = {
 function catLabel(cat) {
   return (CATS[cat] && CATS[cat][currentLang]) || cat || '';
 }
+// ── UI strings (translated only for non-Slavic languages) ───────────────
+var UI_STR = {
+  isv: { title: 'Kartičky', karticky: 'Karti\u010Dky', knopky: 'Knopky', vpisyvanje: 'Vpisyvanje', zmija: 'Zmija', razsypanje: 'Razsypanje',
+         back: 'Vrati', no: 'Ne znam', yes: 'Znam', check: 'Prov\u011Bri', resetAll: 'Obnovi vs\u011B', resetHard: 'Obnovi nau\u010Dene',
+         diploma: 'Diplom ukon\u010Denja:', allCats: 'Vse kategorije', learned: 'nau\u010Dene', known: 'byl(a) jesi znal(a)', dst: 'U\u010Di\u0161 se:', lblMode: 'Igra:', lblCat: 'Kategorija:' },
+  en:  { title: 'Kartičky', karticky: 'Flashcards', knopky: 'Buttons', vpisyvanje: 'Typing', zmija: 'Snake', razsypanje: 'Scramble',
+         back: 'Back', no: "Don't know", yes: 'I know', check: 'Check', resetAll: 'Reset all', resetHard: 'Reset learned',
+         diploma: 'Completed:', allCats: 'All categories', learned: 'learned', known: 'already known', dst: 'You are learning:', lblMode: 'Game:', lblCat: 'Category:' },
+  de:  { title: 'Kartičky', karticky: 'Karteikarten', knopky: 'Auswahl', vpisyvanje: 'Tippen', zmija: 'Schlange', razsypanje: 'Buchstabensalat',
+         back: 'Zur\u00FCck', no: 'Wei\u00DF nicht', yes: 'Wei\u00DF ich', check: 'Pr\u00FCfen', resetAll: 'Alles zur\u00FCcksetzen', resetHard: 'Gelerntes zur\u00FCcksetzen',
+         diploma: 'Abgeschlossen:', allCats: 'Alle Kategorien', learned: 'gelernt', known: 'schon gewusst', dst: 'Du lernst:', lblMode: 'Spiel:', lblCat: 'Kategorie:' },
+  es:  { title: 'Kartičky', karticky: 'Tarjetas', knopky: 'Botones', vpisyvanje: 'Escribir', zmija: 'Serpiente', razsypanje: 'Letras revueltas',
+         back: 'Atr\u00E1s', no: 'No s\u00E9', yes: 'S\u00E9', check: 'Comprobar', resetAll: 'Reiniciar todo', resetHard: 'Reiniciar aprendidas',
+         diploma: 'Completado:', allCats: 'Todas las categor\u00EDas', learned: 'aprendidas', known: 'ya sabidas', dst: 'Est\u00E1s aprendiendo:', lblMode: 'Juego:', lblCat: 'Categor\u00EDa:' },
+  it:  { title: 'Kartičky', karticky: 'Schede', knopky: 'Pulsanti', vpisyvanje: 'Scrittura', zmija: 'Serpente', razsypanje: 'Lettere mescolate',
+         back: 'Indietro', no: 'Non so', yes: 'So', check: 'Verifica', resetAll: 'Azzera tutto', resetHard: 'Azzera apprese',
+         diploma: 'Completato:', allCats: 'Tutte le categorie', learned: 'apprese', known: 'gi\u00E0 note', dst: 'Stai imparando:', lblMode: 'Gioco:', lblCat: 'Categoria:' }
+};
+function T(key) {
+  var t = UI_STR[UI_STR[currentLang] ? currentLang : 'isv'];
+  return t[key] != null ? t[key] : UI_STR.isv[key];
+}
+var BTN_UI = [
+  ['btnBack', 'back', '\u2190 ', ''], ['knopkyBtnBack', 'back', '\u2190 ', ''], ['vpisyvanjeBtnBack', 'back', '\u2190 ', ''],
+  ['zmijaBtnBack', 'back', '\u2190 ', ''], ['razsypanjeBtnBack', 'back', '\u2190 ', ''],
+  ['btnNo', 'no', '', ' \u2193'], ['knopkyBtnNo', 'no', '', ' \u2193'], ['zmijaBtnNoAfter', 'no', '', ' \u2192'], ['zmijaBtnSkip', 'no', '', ' \u2192'],
+  ['btnYes', 'yes', '', ' \u2192'], ['knopkyBtnYes', 'yes', '', ' \u2192'],
+  ['vpisyvanjeBtnCheck', 'check', '', ''], ['razsypanjeBtnCheck', 'check', '', ' \u2192'],
+  ['btnResetAll', 'resetAll', '', ''], ['btnResetHard', 'resetHard', '', '']
+];
+function applyUI() {
+  BTN_UI.forEach(function(r) { var el = document.getElementById(r[0]); if (el) el.textContent = r[2] + T(r[1]) + r[3]; });
+  document.getElementById('appTitle').textContent = T('title');
+  document.querySelectorAll('.mode-menu-item').forEach(function(b) { b.textContent = T(b.dataset.mode); });
+  document.getElementById('modeToggle').textContent = T(currentMode) + ' \u25BE';
+  document.getElementById('lblMode').textContent = T('lblMode');
+  document.getElementById('lblDst').textContent  = T('dst');
+  document.getElementById('lblCat').textContent  = T('lblCat');
+}
+
 var currentMode = 'karticky';
 var deck = [];
 var index = 0;
@@ -1205,10 +1292,38 @@ catToggle.addEventListener('click', function(e) {
   buildCatList();
   catMenu.classList.toggle('hidden');
   modeMenu.classList.add('hidden');
+  dstMenu.classList.add('hidden');
 });
 
 
-document.addEventListener('click', function() { modeMenu.classList.add('hidden'); catMenu.classList.add('hidden'); });
+// Destination-language dropdown
+var dstToggle = document.getElementById('dstToggle');
+var dstMenu   = document.getElementById('dstMenu');
+dstToggle.textContent = DEST_LANG_LABEL[destLang] + ' \u25BE';
+['isv','pl','cz','sk','cr','en','de','es','it','sv'].forEach(function(code) {
+  var b = document.createElement('button');
+  b.className = 'dst-menu-item' + (code === destLang ? ' active' : '');
+  b.textContent = DEST_LANG_LABEL[code];
+  b.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (code === destLang) { dstMenu.classList.add('hidden'); return; }
+    try { localStorage.setItem('karticky_dst', code); } catch(err) {}
+    var params = new URLSearchParams(window.location.search);
+    params.delete('word'); params.delete('num');
+    if (code === 'isv') params.delete('dst'); else params.set('dst', code);
+    var qs = params.toString();
+    window.location.href = window.location.pathname + (qs ? '?' + qs : '');
+  });
+  dstMenu.appendChild(b);
+});
+dstToggle.addEventListener('click', function(e) {
+  e.stopPropagation();
+  dstMenu.classList.toggle('hidden');
+  modeMenu.classList.add('hidden');
+  catMenu.classList.add('hidden');
+});
+
+document.addEventListener('click', function() { modeMenu.classList.add('hidden'); catMenu.classList.add('hidden'); dstMenu.classList.add('hidden'); });
 
 document.querySelectorAll('.mode-menu-item').forEach(function(btn) {
   btn.addEventListener('click', function() { switchMode(btn.dataset.mode); });
@@ -1217,8 +1332,7 @@ document.querySelectorAll('.mode-menu-item').forEach(function(btn) {
 function switchMode(mode) {
   currentMode = mode;
   localStorage.setItem('karticky_mode', mode);
-  var labels = { karticky: 'Karti\u010Dky', knopky: 'Knopky', vpisyvanje: 'Vpisyvanje', zmija: 'Zmija', razsypanje: 'Razsypanje' };
-  modeToggle.textContent = (labels[mode] || mode) + ' \u25BE';
+  modeToggle.textContent = T(mode) + ' \u25BE';
   document.querySelectorAll('.mode-menu-item').forEach(function(b) {
     b.classList.toggle('active', b.dataset.mode === mode);
   });
@@ -1416,6 +1530,7 @@ function setLang(code) {
     b.classList.toggle('active', b.dataset.code === code);
   });
   updateCatToggle();
+  applyUI();
   if (deck.length === 0) { rebuildDeck(); } else { updateProgressBar(); showCurrent(); }
 }
 
@@ -1546,7 +1661,7 @@ function handleOptionClick(clickedBtn, isCorrect) {
     document.addEventListener('click', function handler(e) {
       document.removeEventListener('click', handler);
       if (currentMode !== 'knopky') return;
-      if (e.target.closest('.lang-selector, .mode-dropdown, .cat-dropdown')) return;
+      if (e.target.closest('.lang-selector, .mode-dropdown, .cat-dropdown, .dst-dropdown')) return;
       advance();
     });
   }, 400);
@@ -1593,7 +1708,7 @@ function showVpisyvanje() {
     vpisyvanjeCorrectOverlay.textContent = '';
     vpisyvanjeCorrectOverlay.classList.remove('visible');
     vpisyvanjeAnswer.textContent = '';
-    vpisyvanjeBtnCheck.textContent = 'Prověri';
+    vpisyvanjeBtnCheck.textContent = T('check');
     vpisyvanjeBtnCheck.style.cssText = '';
     setCardNum(item.num);
   }
@@ -1632,7 +1747,7 @@ function checkVpisyvanje() {
       return sp >= 0 ? '<b>' + t.substring(0, sp) + '</b>' + t.substring(sp) : '<b>' + t + '</b>';
     }).join(', ') + '</span>';
     vpisyvanjeCorrectOverlay.classList.add('visible');
-    vpisyvanjeBtnCheck.textContent = 'Znam \u2192';
+    vpisyvanjeBtnCheck.textContent = T('yes') + ' \u2192';
     vpisyvanjeBtnCheck.style.background = 'rgba(50,200,100,0.3)';
     vpisyvanjeBtnCheck.style.boxShadow  = 'none';
     vpisyvanjeNextAction = function() { nextCard(); };
@@ -1640,7 +1755,7 @@ function checkVpisyvanje() {
     markWrong(item.num);
     playWrong();
     vpisyvanjeInput.classList.add('wrong');
-    vpisyvanjeBtnCheck.textContent = 'Ne znam \u2192';
+    vpisyvanjeBtnCheck.textContent = T('no') + ' \u2192';
     vpisyvanjeBtnCheck.style.background = 'rgba(220,80,80,0.25)';
     vpisyvanjeBtnCheck.style.color      = 'rgba(255,160,160,0.9)';
     vpisyvanjeBtnCheck.style.boxShadow  = 'none';
@@ -1703,7 +1818,7 @@ function showRazsypanje() {
     razsypanjeCorrectOverlay.innerHTML = '';
     razsypanjeCorrectOverlay.classList.remove('visible');
     razsypanjeAnswer.textContent = '';
-    razsypanjeBtnCheck.textContent = 'Prověri \u2192';
+    razsypanjeBtnCheck.textContent = T('check') + ' \u2192';
     razsypanjeBtnCheck.style.cssText = '';
     setCardNum(item.num);
     var letters = razsypanjeLetters(item);
@@ -1760,7 +1875,7 @@ function checkRazsypanje() {
       return sp >= 0 ? '<b>' + t.substring(0, sp) + '</b>' + t.substring(sp) : '<b>' + t + '</b>';
     }).join(', ') + '</span>';
     razsypanjeCorrectOverlay.classList.add('visible');
-    razsypanjeBtnCheck.textContent = 'Znam \u2192';
+    razsypanjeBtnCheck.textContent = T('yes') + ' \u2192';
     razsypanjeBtnCheck.style.background = 'rgba(50,200,100,0.3)';
     razsypanjeBtnCheck.style.boxShadow  = 'none';
     razsypanjeNextAction = function() { nextCard(); };
@@ -1768,7 +1883,7 @@ function checkRazsypanje() {
     markWrong(item.num);
     playWrong();
     razsypanjeDisplay.classList.add('wrong');
-    razsypanjeBtnCheck.textContent = 'Ne znam \u2192';
+    razsypanjeBtnCheck.textContent = T('no') + ' \u2192';
     razsypanjeBtnCheck.style.background = 'rgba(220,80,80,0.25)';
     razsypanjeBtnCheck.style.color      = 'rgba(255,160,160,0.9)';
     razsypanjeBtnCheck.style.boxShadow  = 'none';
@@ -1783,9 +1898,9 @@ function showVictory() {
   var all = filterVocabAll();
   var nKnown   = all.filter(function(w) { return cat.known.indexOf(w.num)   >= 0; }).length;
   var nLearned = all.filter(function(w) { return cat.learned.indexOf(w.num) >= 0; }).length;
-  victoryTitle.textContent = 'Diplom ukon\u010Denja:';
-  victoryCat.textContent   = selectedCat ? catLabel(selectedCat) : 'Vse kategorije';
-  victorySub.textContent   = nLearned + ' naučene, ' + nKnown + ' byl(a) jesi znal(a)';
+  victoryTitle.textContent = T('diploma');
+  victoryCat.textContent   = selectedCat ? catLabel(selectedCat) : T('allCats');
+  victorySub.textContent   = nLearned + ' ' + T('learned') + ', ' + nKnown + ' ' + T('known');
   btnResetHard.disabled = nLearned === 0;
   victorySect.classList.remove('hidden');
   kartickySect.classList.add('hidden');
@@ -1918,7 +2033,7 @@ function showZmija() {
   zmijaNextAction = null;
   zmijaSelected = 0;
   zmijaActiveVariant = -1;
-  zmijaBtnSkip.textContent = 'Ne znam \u2192';
+  zmijaBtnSkip.textContent = T('no') + ' \u2192';
   zmijaBtnSkip.style.cssText = '';
   zmijaBtnNoAfter.style.display = 'none';
 
@@ -2063,7 +2178,7 @@ function handleZmijaClick(e) {
       playCorrect();
       zmijaAnswered = true;
       zmijaCompleted = true;
-      zmijaBtnSkip.textContent = 'Znam \u2192';
+      zmijaBtnSkip.textContent = T('yes') + ' \u2192';
       zmijaBtnSkip.style.background = 'rgba(50,200,100,0.3)';
       zmijaBtnSkip.style.boxShadow  = 'none';
       zmijaBtnNoAfter.style.display = '';
@@ -2117,7 +2232,7 @@ zmijaBtnSkip.addEventListener('click', function() {
     markWrong(num);
     zmijaAnswered = true;
     updateZmijaHighlights();
-    zmijaBtnSkip.textContent = 'Ne znam \u2192';
+    zmijaBtnSkip.textContent = T('no') + ' \u2192';
     zmijaBtnSkip.style.background = 'rgba(220,80,80,0.25)';
     zmijaBtnSkip.style.color      = 'rgba(255,160,160,0.9)';
     zmijaBtnSkip.style.boxShadow  = 'none';
